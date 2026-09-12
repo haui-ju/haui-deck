@@ -1,6 +1,11 @@
 {
   "version": 1,
   "skills": {
+    "review-skill": {
+      "source": "./suit/meta",
+      "sourceType": "local",
+      "computedHash": "b673661e4806a522f4182889fada749fb78d670c826266430e3a0e3d997da8f0"
+    },
     "skill-creator": {
       "source": "anthropics/skills",
       "sourceType": "github",

@@ -2,12 +2,15 @@
 
 Apply when the target is under this repository.
 
-## Product vs meta
+## Suits
 
 | Kind | Path |
 |------|------|
-| Product suit skill | `suit/<suit>/<skill>/SKILL.md` |
-| Repo meta skill | `/<skill>/SKILL.md` at repo root (e.g. `review-skill/`) |
+| Product skill | `suit/<suit>/<skill>/SKILL.md` (e.g. `suit/design/…`) |
+| Maintainer / meta skill | `suit/meta/<skill>/SKILL.md` (e.g. `suit/meta/review-skill/`) |
+| Local install (runtime) | `.agents/skills/<skill>/` via `npx skills add` — not source |
+
+Never place skills at repo root.
 
 ## Suit `design` (current)
 
@@ -17,12 +20,23 @@ Apply when the target is under this repository.
 | `deck-hola-mundo` | Smoke reply | No |
 | `deck-make-button` | Create button; default label `boton` | Read config only; if missing → tell user to `/deck-init` |
 
+## Suit `meta` (current)
+
+| Skill | Job |
+|-------|-----|
+| `review-skill` | Hostile audit of skills in this repo |
+
 ## Consumer project contract
 
 - Optional `.haui-deck/config.json` with `design` / `product` paths or `null`.
 - Shared with Impeccable-style workflows: root `DESIGN.md`, `PRODUCT.md`.
 - No mandatory `components.md` / `tokens.md` index in v0.
 
-## Discovery note
+## Install paths
 
-Listing from repo root may need `--full-depth` to see suit skills alongside root meta skills. Product install path remains `haui-ju/haui-deck/suit/design`.
+```bash
+npx skills add haui-ju/haui-deck/suit/design
+npx skills add haui-ju/haui-deck/suit/meta
+# or
+npx skills add haui-ju/haui-deck --skill review-skill --full-depth
+```

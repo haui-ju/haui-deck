@@ -70,11 +70,12 @@ Any **Critical** miss ⇒ overall FAIL.
 
 | ID | Check | Sev |
 |----|--------|-----|
-| L1 | Product skills under `suit/<suit>/<skill>/` | Critical |
-| L2 | Repo meta skills (e.g. `review-skill`) at **repo root**, not inside a product suit | Critical |
+| L1 | Product skills under `suit/<suit>/<skill>/` (not repo root) | Critical |
+| L2 | Maintainer skills under `suit/meta/<skill>/` (e.g. `review-skill`) | Critical |
 | L3 | No orphan `SKILL.md`, half-deleted trees, or stale paths in docs | Critical |
 | L4 | Suit README lists exactly the skills that exist | Warning |
 | L5 | haui-deck design rules in [haui-deck.md](haui-deck.md) applied when reviewing `suit/design/*` | Critical |
+| L6 | No skill source directories at repository root | Critical |
 
 ## 8. Docs sync
 

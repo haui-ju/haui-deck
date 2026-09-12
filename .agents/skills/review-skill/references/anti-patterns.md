@@ -27,5 +27,6 @@
 - Putting `ensure-haui-deck` inside `deck-make-button`.
 - Writing `DESIGN.md` / `PRODUCT.md` from an action skill without being asked.
 - Requiring `.haui-deck/index/*` when DESIGN.md already holds the system.
-- Leaving deleted skill trees (`suit/design/design/…`) or docs that still advertise them.
-- Tests under `suit/**/skills/**` or `suit/**/deck-*/**/*.test.*`.
+- Leaving skill sources at repo root (use `suit/<suit>/` or `suit/meta/`)
+- Leaving deleted skill trees (`suit/design/design/…`) or docs that still advertise them
+- Tests under `suit/**/**/*.test.*`

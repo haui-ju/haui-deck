@@ -15,7 +15,7 @@ Hostile reviewer. Prefer FAIL over soft PASS. Do not praise. Do not edit unless 
 
 ## Load order (token discipline)
 
-1. Read repo [`AGENTS.md`](../AGENTS.md).
+1. Read repo [`AGENTS.md`](../../../AGENTS.md).
 2. Inventory target skill dir (files only; do not dump unrelated suits).
 3. Read target `SKILL.md` fully.
 4. Read [references/checklist.md](references/checklist.md) and apply every row.
@@ -30,7 +30,7 @@ Do not load this skill’s entire `references/` tree up front.
 ## Targets
 
 - User-named skill path, or
-- All product skills under `suit/**/SKILL.md` plus root meta skills (`review-skill/`), excluding `.agents/` installs.
+- All skills under `suit/**/SKILL.md` (including `suit/meta/`), excluding `.agents/` installs.
 
 ## Stance
 

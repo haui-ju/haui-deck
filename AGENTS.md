@@ -4,27 +4,31 @@ Reglas para **haui-deck**.
 
 ## Installs
 
-- Destino proyecto: **`.agents/skills/`**. `npx skills` reparte a otros agentes.
-- Source producto: **`suit/<nombre>/<skill>/`**. Meta del repo (p. ej. **`review-skill/`**) en la **raíz**.
-- **`npx skills add` no ejecuta post-install.** Tras instalar suit `design`, correr **`/deck-init`** una vez.
-- Antes de mergear skills: **`/review-skill`** (auditoría hostil; checklist EN en `review-skill/references/`).
-- SKILL.md lean; rúbricas largas en `references/` (progressive disclosure).
+- Destino runtime: **`.agents/skills/`** (copia local tras `npx skills add`).
+- Source siempre bajo **`suit/`**:
+  - producto: `suit/<suit>/<skill>/`
+  - meta/mantenedores: `suit/meta/<skill>/` (p. ej. `review-skill`)
+- Nunca dejar skills en la raíz del repo.
+- Tras editar source: `npx skills add ./suit/meta --skill review-skill -y` o `npx skills update`.
+- **`npx skills add` no ejecuta post-install.** Tras suit `design` → **`/deck-init`** una vez.
+- Antes de mergear: **`/review-skill`**.
+- SKILL.md lean; rúbricas en `references/`.
 
 ## CLI
 
 ```bash
 npx skills add haui-ju/haui-deck/suit/design
-npx skills add haui-ju/haui-deck --skill <skill>
+npx skills add haui-ju/haui-deck/suit/meta
+npx skills add haui-ju/haui-deck --skill <skill> --full-depth
 npx skills remove <skill> …
 npx skills update
 ```
 
 ## Contexto
 
-- `/deck-init` → script `ensure-haui-deck.mjs`: detecta `DESIGN.md`/`PRODUCT.md` → `.haui-deck/config.json`.
-- `/deck-make-button` solo **lee** el config (si falta → pedir `/deck-init`).
-- Tests en `tests/` del repo: `pnpm test`. No meter tests dentro de skills instalables.
-- SKILL.md corto: sin ensayos que gasten tokens en cada invocación.
+- `/deck-init` → `ensure-haui-deck.mjs` → `.haui-deck/config.json`.
+- `/deck-make-button` solo lee config (si falta → `/deck-init`).
+- Tests en `tests/`: `pnpm test`.
 
 ## Autoría
 
