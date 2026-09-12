@@ -5,8 +5,10 @@ Reglas para **haui-deck**.
 ## Installs
 
 - Destino proyecto: **`.agents/skills/`**. `npx skills` reparte a otros agentes.
-- Source: **`suit/<nombre>/<skill>/`**.
+- Source producto: **`suit/<nombre>/<skill>/`**. Meta del repo (p. ej. **`review-skill/`**) en la **raíz**.
 - **`npx skills add` no ejecuta post-install.** Tras instalar suit `design`, correr **`/deck-init`** una vez.
+- Antes de mergear skills: **`/review-skill`** (auditoría hostil; checklist EN en `review-skill/references/`).
+- SKILL.md lean; rúbricas largas en `references/` (progressive disclosure).
 
 ## CLI
 

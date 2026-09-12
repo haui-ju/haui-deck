@@ -33,6 +33,14 @@ npx skills update
 |-------|--------|
 | — | Ninguno aún |
 
+## Mantenedores
+
+```bash
+# auditar skills de este repo
+# /review-skill
+npx skills add . --skill review-skill
+```
+
 ## Draft
 
 [`draft.md`](draft.md)
