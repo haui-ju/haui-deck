@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.DS_Store
+*.log
+.env
+.env.*
+
+# Local agent skill installs (not part of the deck source)
+.agents/
+.claude/
+.cursor/
+.codex/
+skills-lock.json
