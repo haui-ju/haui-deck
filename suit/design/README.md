@@ -6,7 +6,7 @@ Skills de diseño UI / frontend visual.
 
 ```bash
 # todo el suit
-npx skills add haui-ju/haui-deck/suits/design -y
+npx skills add haui-ju/haui-deck/suit/design -y
 
 # preciso
 npx skills add haui-ju/haui-deck --skill design -y

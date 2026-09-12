@@ -2,7 +2,7 @@
   "name": "haui-deck",
   "version": "0.1.0",
   "private": true,
-  "description": "Agent skills deck by haui-ju — installable suits for Cursor, Claude, Codex, and more",
+  "description": "Agent skills deck by haui-ju — installable suit blocks for Cursor, Claude, Codex, and more",
   "license": "MIT",
   "repository": {
     "type": "git",

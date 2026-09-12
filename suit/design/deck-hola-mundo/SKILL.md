@@ -19,7 +19,7 @@ Smoke test del suit `design` de haui-deck.
 4. Incluye el comando de install del suit completo:
 
 ```bash
-npx skills add haui-ju/haui-deck/suits/design -y
+npx skills add haui-ju/haui-deck/suit/design -y
 ```
 
 5. Menciona que el playbook UI está en la skill hermana `design` (`/design`).
@@ -28,4 +28,4 @@ npx skills add haui-ju/haui-deck/suits/design -y
 
 > Hola — haui-deck / suit **design** OK (`deck-hola-mundo`).
 > Playbook UI: `/design`.
-> Pack: `npx skills add haui-ju/haui-deck/suits/design -y`
+> Pack: `npx skills add haui-ju/haui-deck/suit/design -y`

@@ -2,7 +2,7 @@
 
 No implementado aún. Ideas para más adelante.
 
-## Suits futuros
+## Suit futuros
 
 | Suit | Skills tentativas | Notas |
 |------|-------------------|--------|
@@ -17,7 +17,7 @@ No implementado aún. Ideas para más adelante.
 
 ```bash
 # pack completo
-npx skills add haui-ju/haui-deck/suits/<suit> -y
+npx skills add haui-ju/haui-deck/suit/<nombre> -y
 
 # preciso
 npx skills add haui-ju/haui-deck --skill <skill-name> -y
@@ -28,5 +28,5 @@ npx skills add haui-ju/haui-deck --skill <skill-name> -y
 - [ ] Archivos `config` del deck
 - [ ] Comandos / CLI propia (alias cortos tipo `deck add design`)
 - [ ] Paquetes npm `@haui-deck/*`
-- [ ] Más agentes dentro de `suits/design/design/agents/`
+- [ ] Más agentes dentro de `suit/design/design/agents/`
 - [ ] Skills slash adicionales (`code-review`, …)

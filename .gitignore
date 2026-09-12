@@ -4,9 +4,3 @@ dist/
 *.log
 .env
 .env.*
-
-# Local agent skill installs (like node_modules — restore via skills-lock.json)
-.agents/
-.claude/
-.cursor/
-.codex/

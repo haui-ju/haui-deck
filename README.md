@@ -2,14 +2,14 @@
 
 Deck de **Agent Skills** instalables (Cursor, Claude, Codex, Copilot, …).
 
-Organizado en **suits** (bloques). Cada suit contiene una o más skills.
+Organizado en **`suit/`** (bloques). Cada entrada bajo `suit/` contiene una o más skills.
 
 ## Install
 
 ### Suit `design` completo
 
 ```bash
-npx skills add haui-ju/haui-deck/suits/design -y
+npx skills add haui-ju/haui-deck/suit/design -y
 ```
 
 ### Solo una skill
@@ -22,14 +22,14 @@ npx skills add haui-ju/haui-deck --skill deck-hola-mundo -y
 ### Global / todos los agentes
 
 ```bash
-npx skills add haui-ju/haui-deck/suits/design -g --agent '*' -y
+npx skills add haui-ju/haui-deck/suit/design -g --agent '*' -y
 ```
 
-## Suits
+## Suit
 
 | Suit | Skills | Uso |
 |------|--------|-----|
-| [`design`](suits/design) | `design`, `deck-hola-mundo` | UI / frontend visual; smoke `/deck-hola-mundo` |
+| [`design`](suit/design) | `design`, `deck-hola-mundo` | UI / frontend visual; smoke `/deck-hola-mundo` |
 
 ## Uso en chat
 
@@ -39,25 +39,17 @@ npx skills add haui-ju/haui-deck/suits/design -g --agent '*' -y
 ## Estructura
 
 ```text
-suits/<suit>/<skill>/SKILL.md
+suit/<nombre>/<skill>/SKILL.md
 ```
 
 Estándar: [create-skill](https://cursor.com/docs/skills) / Agent Skills (`name` + `description`, progressive disclosure).
 
-## Contribución / herramientas locales
+## Repo portable (varias máquinas)
 
-Las skills **del deck** viven en `suits/` y van en git.
+Este repo versiona también las tools instaladas en el proyecto (`.agents/`, `.claude/`, `skills-lock.json`) para clonar y seguir trabajando sin reinstalar cada vez.
 
-Las carpetas `.agents/`, `.claude/`, etc. son installs locales del CLI (no se commitean). Para recuperar las mismas herramientas de desarrollo (p. ej. `skill-creator`):
-
-```bash
-npx skills experimental_install
-# o a mano:
-npx skills add anthropics/skills --skill skill-creator -y
-```
-
-El archivo [`skills-lock.json`](skills-lock.json) fija qué skills de desarrollo usa este repo.
+Las skills **publicadas** del deck viven en `suit/`. Las de **autoría/dev** (p. ej. `skill-creator`) viven en `.agents/skills/`.
 
 ## Draft
 
-Ideas futuras (otros suits, npm, config, CLI): ver [`draft.md`](draft.md).
+Ideas futuras: ver [`draft.md`](draft.md).
