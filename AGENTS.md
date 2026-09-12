@@ -22,10 +22,10 @@ Sin `-y` → pregunta scope/agentes. Con `-y` → sin prompts.
 
 ## Contexto en proyectos consumidores
 
-- Carpeta opcional **`.haui-deck/`** (p. ej. `config.json` con paths a `DESIGN.md` / `PRODUCT.md`).
-- `DESIGN.md` + `PRODUCT.md` en la raíz = verdad visual/producto (compatible Impeccable).
-- **Solo** las skills que declaran Project context cargan esos archivos (ahorro de tokens). Hoy: `deck-make-button` sí; `deck-hola-mundo` no.
-- No exigir ni generar `components.md` / `tokens.md` en v0.
+- Flujo fijo (script `ensure-haui-deck.mjs`): **1)** detectar `DESIGN.md`/`PRODUCT.md` → **2)** crear `.haui-deck/` → **3)** escribir `config.json` solo con paths que existen (`null` si faltan).
+- `deck-make-button` ejecuta ese script; no inventa MD ni índices.
+- `deck-hola-mundo` no toca contexto.
+- Tests: `node suit/design/deck-make-button/scripts/ensure-haui-deck.test.mjs`
 
 ## Autoría
 

@@ -12,29 +12,48 @@ disable-model-invocation: true
 
 Crea un botón simple en el proyecto.
 
-## Project context
+## Project context (orden fijo — no improvisar)
 
-Cargar solo lo necesario (no leas índices inventados):
+**Paso 1 — Validar contexto** y **Paso 2 — Crear `.haui-deck`** se hacen con el script (no a mano):
 
-1. Si existe `.haui-deck/config.json`, úsalo para paths de `design` / `product` (default: `DESIGN.md`, `PRODUCT.md` en la raíz).
-2. Si existe `DESIGN.md`, léelo. Si define un Button / componente de botón del sistema, **úsalo** (import y API del proyecto).
-3. `PRODUCT.md` solo si el label o el tono de marca lo requieren (casi nunca para un botón suelto).
-4. Si no hay `DESIGN.md`, implementa un botón mínimo en el stack del repo. No inventes un design system ni crees `components.md` / `tokens.md`.
+```bash
+node <path-to-this-skill>/scripts/ensure-haui-deck.mjs
+```
+
+El script, en este orden:
+
+1. Mira en la raíz del proyecto si existen exactamente `DESIGN.md` y/o `PRODUCT.md` (no los crea).
+2. Crea `.haui-deck/` si no existe.
+3. Escribe `.haui-deck/config.json` enrutando solo lo encontrado (`design` / `product` = path o `null`).
+
+Si el runtime muestra el base path de la skill, usa ese path absoluto al script. cwd = raíz del proyecto del usuario.
+
+**Paso 3 — Leer contexto**
+
+1. Lee `.haui-deck/config.json`.
+2. Si `design` no es `null`, lee ese archivo. Si define un Button del sistema, **úsalo**.
+3. Si `product` no es `null`, léelo solo si el label/tono de marca lo requieren.
+4. Si `design` es `null` → botón mínimo en el stack del repo. No inventes design system ni `components.md` / `tokens.md`.
 
 ## Instructions
 
-1. Determina el label:
-   - Si el usuario dio texto → úsalo.
-   - Si no → **`boton`**.
-2. Elige el archivo/destino razonable (componente nuevo o el que indique el usuario).
-3. Implementa el botón (HTML/React/Vue/etc. según el proyecto).
-4. Mantén el cambio mínimo: un botón, sin página entera ni estilos AI-slop.
-5. Responde breve en español: dónde quedó y qué label usaste.
+1. Label: texto del usuario, o **`boton`** si no hay texto.
+2. Ejecuta el script de Project context (arriba) antes de editar UI.
+3. Destino razonable; implementa el botón según el stack.
+4. Cambio mínimo: un botón, sin página entera ni AI-slop.
+5. Responde breve en español: label, path del botón, y el `config` resultante (`design`/`product`).
+
+## Verify
+
+```bash
+node <path-to-this-skill>/scripts/ensure-haui-deck.mjs --check
+node <path-to-this-skill>/scripts/ensure-haui-deck.test.mjs
+```
 
 ## Example
 
 User: `/deck-make-button`  
-→ botón con texto `boton`.
+→ script asegura `.haui-deck/config.json`; botón `boton`.
 
 User: `/deck-make-button Guardar`  
-→ botón con texto `Guardar`.
+→ botón `Guardar`.
