@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+/**
+ * Tests for suit/design/deck-init/scripts/ensure-haui-deck.mjs
+ * En tests/ del repo — no se instala con la skill.
+ */
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -6,7 +10,11 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import assert from "node:assert/strict";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const mod = await import(pathToFileURL(path.join(__dirname, "ensure-haui-deck.mjs")).href);
+const scriptPath = path.resolve(
+  __dirname,
+  "../../suit/design/deck-init/scripts/ensure-haui-deck.mjs",
+);
+const mod = await import(pathToFileURL(scriptPath).href);
 const { detectContext, buildConfig, ensureHauiDeck } = mod;
 
 function tmpProject(files = {}) {

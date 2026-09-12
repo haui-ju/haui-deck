@@ -2,10 +2,10 @@
 
 ## Contexto / Impeccable
 
-- [ ] Wrapper de skills Impeccable útiles (reutilizar `DESIGN.md` / `PRODUCT.md`)
-- [ ] Skill init: scaffold `PRODUCT.md`, `DESIGN.md`, `.haui-deck/config.json`
-- [ ] Índice opcional `.haui-deck/index/*` (components/tokens) — solo si hace falta; default = leer DESIGN.md
-- [ ] Skill tipo `document` que genere/actualice DESIGN.md desde el código
+- [ ] Post-install automático si el CLI de skills lo soporta algún día (hoy: `/deck-init` manual)
+- [ ] Wrapper Impeccable
+- [ ] Skill que genere/actualice DESIGN.md desde código
+- [ ] Índice opcional `.haui-deck/index/*` (no obligatorio)
 
 ## Suit futuros
 

@@ -13,5 +13,9 @@
     "cursor",
     "claude",
     "skills"
-  ]
+  ],
+  "scripts": {
+    "test": "node tests/deck-init/ensure-haui-deck.test.mjs"
+  },
+  "type": "module"
 }

@@ -9,24 +9,13 @@ disable-model-invocation: true
 
 # Deck hola mundo
 
-Smoke test del suit `design` de haui-deck.
-
 ## Instructions
 
-1. No leas el repo en busca de bugs ni edites archivos.
-2. No cargues DESIGN.md / PRODUCT.md / `.haui-deck` (esta skill no usa Project context).
-3. Responde en español, breve (3–5 líneas máx).
-4. Confirma que la skill `deck-hola-mundo` del suit `design` está activa.
-5. Incluye el comando de install del suit:
+1. No edites archivos ni cargues DESIGN/PRODUCT/`.haui-deck`.
+2. Responde en español, 3–5 líneas.
+3. Confirma suit `design` OK (`deck-hola-mundo`).
+4. Menciona install + `/deck-init` + `/deck-make-button`:
 
 ```bash
 npx skills add haui-ju/haui-deck/suit/design
 ```
-
-6. Menciona la skill hermana `/deck-make-button`.
-
-## Example reply
-
-> Hola — haui-deck / suit **design** OK (`deck-hola-mundo`).
-> También: `/deck-make-button`.
-> Pack: `npx skills add haui-ju/haui-deck/suit/design`
