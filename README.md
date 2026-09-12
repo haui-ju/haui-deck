@@ -1,84 +1,43 @@
 # haui-deck
 
-Deck de **Agent Skills** instalables (Cursor, Claude, Codex, Copilot, …).
+Agent Skills por **suit**. Destino típico: `.agents/skills/` (`npx skills` reparte a Cursor/Claude/etc.).
 
-Organizado en **`suit/`** (bloques). Cada entrada bajo `suit/` contiene una o más skills.
-
-## Install
-
-### Interactivo (elige agentes)
-
-Sin `-y` el CLI pregunta scope y agentes:
+## Uso
 
 ```bash
+# suit completo
 npx skills add haui-ju/haui-deck/suit/design
+
+# skill concreta
+npx skills add haui-ju/haui-deck --skill design
+npx skills add haui-ju/haui-deck --skill deck-hola-mundo
+
+# quitar (por nombre, no por URL)
+npx skills remove design deck-hola-mundo
+
+# actualizar
+npx skills update
 ```
 
-### Suit `design` completo (sin prompts)
+Sin `-y` el CLI pregunta scope/agentes. Con `-y` instala sin prompts.
 
-```bash
-# todos los agentes detectados
-npx skills add haui-ju/haui-deck/suit/design --agent '*' -y
+## Suit `design`
 
-# solo algunos
-npx skills add haui-ju/haui-deck/suit/design --agent cursor --agent claude-code -y
-```
+UI / composición frontend. [`suit/design`](suit/design)
 
-`-y` salta confirmaciones (incluido el menú de agentes). Si quieres que te pregunte, **no uses `-y`**.
+### Skills
 
-### Solo una skill
+| Skill | Slash | Qué hace |
+|-------|-------|----------|
+| `design` | `/design` | Playbook de composición UI |
+| `deck-hola-mundo` | `/deck-hola-mundo` | Smoke test del suit |
 
-```bash
-npx skills add haui-ju/haui-deck --skill design -y
-npx skills add haui-ju/haui-deck --skill deck-hola-mundo -y
-```
+### Agents
 
-### Global
-
-```bash
-npx skills add haui-ju/haui-deck/suit/design -g --agent cursor -y
-```
-
-## Remove
-
-`remove` usa el **nombre de la skill**, no la URL del repo:
-
-```bash
-# interactivo
-npx skills remove
-
-# por nombre
-npx skills remove design deck-hola-mundo -y
-
-# todo el proyecto
-npx skills remove --all
-```
-
-## Suit
-
-| Suit | Skills | Uso |
-|------|--------|-----|
-| [`design`](suit/design) | `design`, `deck-hola-mundo` | UI / frontend visual; smoke `/deck-hola-mundo` |
-
-## Uso en chat
-
-- `/design` o contexto de UI → playbook de diseño
-- `/deck-hola-mundo` → smoke test del suit
-
-## Estructura
-
-```text
-suit/<nombre>/<skill>/SKILL.md
-```
-
-Estándar: [create-skill](https://cursor.com/docs/skills) / Agent Skills (`name` + `description`, progressive disclosure).
-
-## Repo portable (varias máquinas)
-
-Este repo versiona también las tools instaladas en el proyecto (`.agents/`, `.claude/`, `skills-lock.json`) para clonar y seguir trabajando sin reinstalar cada vez.
-
-Las skills **publicadas** del deck viven en `suit/`. Las de **autoría/dev** (p. ej. `skill-creator`) viven en `.agents/skills/`.
+| Agent | Notas |
+|-------|--------|
+| — | Ninguno aún (`design/agents/` reservado) |
 
 ## Draft
 
-Ideas futuras: ver [`draft.md`](draft.md).
+[`draft.md`](draft.md)
