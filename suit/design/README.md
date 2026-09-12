@@ -5,12 +5,18 @@ Skills de diseño UI / frontend visual.
 ## Install
 
 ```bash
-# todo el suit
-npx skills add haui-ju/haui-deck/suit/design -y
+# interactivo (elige agentes)
+npx skills add haui-ju/haui-deck/suit/design
+
+# sin prompts, agentes concretos
+npx skills add haui-ju/haui-deck/suit/design --agent cursor --agent claude-code -y
 
 # preciso
 npx skills add haui-ju/haui-deck --skill design -y
 npx skills add haui-ju/haui-deck --skill deck-hola-mundo -y
+
+# quitar (por nombre de skill, no por URL)
+npx skills remove design deck-hola-mundo -y
 ```
 
 ## Skills
