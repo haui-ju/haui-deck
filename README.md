@@ -1,7 +1,5 @@
 # haui-deck
 
-Agent Skills por **suit**. Destino típico: `.agents/skills/` (`npx skills` reparte a Cursor/Claude/etc.).
-
 ## Uso
 
 ```bash
@@ -27,16 +25,16 @@ UI / composición frontend. [`suit/design`](suit/design)
 
 ### Skills
 
-| Skill | Slash | Qué hace |
-|-------|-------|----------|
-| `design` | `/design` | Playbook de composición UI |
-| `deck-hola-mundo` | `/deck-hola-mundo` | Smoke test del suit |
+| Skill             | Slash              | Qué hace                   |
+| ----------------- | ------------------ | -------------------------- |
+| `design`          | `/design`          | Playbook de composición UI |
+| `deck-hola-mundo` | `/deck-hola-mundo` | Smoke test del suit        |
 
 ### Agents
 
-| Agent | Notas |
-|-------|--------|
-| — | Ninguno aún (`design/agents/` reservado) |
+| Agent | Notas                                    |
+| ----- | ---------------------------------------- |
+| —     | Ninguno aún (`design/agents/` reservado) |
 
 ## Draft
 
