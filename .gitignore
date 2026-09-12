@@ -5,9 +5,8 @@ dist/
 .env
 .env.*
 
-# Local agent skill installs (not part of the deck source)
+# Local agent skill installs (like node_modules — restore via skills-lock.json)
 .agents/
 .claude/
 .cursor/
 .codex/
-skills-lock.json
