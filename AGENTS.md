@@ -6,33 +6,32 @@ Reglas para quien trabaja en **haui-deck** (agentes y humanos).
 
 - Preferir siempre **`.agents/skills/`** como destino de proyecto.
 - No copiar skills a mano a `.cursor/`, `.claude/`, etc.: **`npx skills`** reparte / enlaza a otros agentes si el usuario lo pide.
-- Source de verdad publicable: **`suit/<nombre>/<skill>/`**.
-- Tools de autoría del repo (p. ej. `skill-creator`) también viven bajo `.agents/skills/` y se versionan con el repo.
+- Source publicable: **`suit/<nombre>/<skill>/`**.
+- Tools de autoría del repo (p. ej. `skill-creator`) viven bajo `.agents/skills/` y se versionan con el repo.
 
 ## Skills CLI
 
 ```bash
-# suit completo
 npx skills add haui-ju/haui-deck/suit/<nombre>
-
-# skill concreta
 npx skills add haui-ju/haui-deck --skill <skill>
-
-# quitar (por nombre, no por URL)
 npx skills remove <skill> …
-
-# actualizar
 npx skills update
 ```
 
 Sin `-y` → pregunta scope/agentes. Con `-y` → sin prompts.
 
+## Contexto en proyectos consumidores
+
+- Carpeta opcional **`.haui-deck/`** (p. ej. `config.json` con paths a `DESIGN.md` / `PRODUCT.md`).
+- `DESIGN.md` + `PRODUCT.md` en la raíz = verdad visual/producto (compatible Impeccable).
+- **Solo** las skills que declaran Project context cargan esos archivos (ahorro de tokens). Hoy: `deck-make-button` sí; `deck-hola-mundo` no.
+- No exigir ni generar `components.md` / `tokens.md` en v0.
+
 ## Autoría
 
 - Estándar **create-skill**: carpeta = `name`, `description` WHAT+WHEN.
 - Slash-only → `disable-model-invocation: true`.
-- Detalle largo en `references/`; subagentes en `agents/` dentro de la skill.
-- README breve; sin redundancia. Detalle de backlog en `draft.md`.
+- README breve. Backlog en `draft.md`.
 
 ## Git
 

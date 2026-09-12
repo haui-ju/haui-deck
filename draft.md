@@ -1,32 +1,25 @@
 # Draft — backlog haui-deck
 
-No implementado aún. Ideas para más adelante.
+## Contexto / Impeccable
+
+- [ ] Wrapper de skills Impeccable útiles (reutilizar `DESIGN.md` / `PRODUCT.md`)
+- [ ] Skill init: scaffold `PRODUCT.md`, `DESIGN.md`, `.haui-deck/config.json`
+- [ ] Índice opcional `.haui-deck/index/*` (components/tokens) — solo si hace falta; default = leer DESIGN.md
+- [ ] Skill tipo `document` que genere/actualice DESIGN.md desde el código
 
 ## Suit futuros
 
 | Suit | Skills tentativas | Notas |
 |------|-------------------|--------|
 | `core` | `code`, `git` | estándares + workflow git |
-| `web` | `ui` + paquete `@haui-deck/web` | design system web |
-| `app` | `native` + `@haui-deck/app` | móvil / Expo |
+| `web` | UI pack + `@haui-deck/web` | design system web |
+| `app` | native + `@haui-deck/app` | móvil / Expo |
 | `py` | `py` | Python |
-| `api` | `api` | backend / server |
+| `api` | `api` | backend |
 | `mem` | `graphify` | memoria Graphify |
-
-## Install por suit (patrón)
-
-```bash
-# pack completo
-npx skills add haui-ju/haui-deck/suit/<nombre> -y
-
-# preciso
-npx skills add haui-ju/haui-deck --skill <skill-name> -y
-```
 
 ## Pendiente
 
-- [ ] Archivos `config` del deck
-- [ ] Comandos / CLI propia (alias cortos tipo `deck add design`)
+- [ ] CLI propia (`deck add design`, …)
 - [ ] Paquetes npm `@haui-deck/*`
-- [ ] Más agentes dentro de `suit/design/design/agents/`
-- [ ] Skills slash adicionales (`code-review`, …)
+- [ ] Agentes bajo skills del suit design

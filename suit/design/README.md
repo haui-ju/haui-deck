@@ -6,8 +6,8 @@ Ver install/remove en el [README raíz](../../README.md).
 
 | Skill | Slash |
 |-------|-------|
-| `design` | `/design` |
 | `deck-hola-mundo` | `/deck-hola-mundo` |
+| `deck-make-button` | `/deck-make-button` |
 
 ### Agents
 

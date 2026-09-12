@@ -14,18 +14,19 @@ Smoke test del suit `design` de haui-deck.
 ## Instructions
 
 1. No leas el repo en busca de bugs ni edites archivos.
-2. Responde en español, breve (3–5 líneas máx).
-3. Confirma que la skill `deck-hola-mundo` del suit `design` está activa.
-4. Incluye el comando de install del suit completo:
+2. No cargues DESIGN.md / PRODUCT.md / `.haui-deck` (esta skill no usa Project context).
+3. Responde en español, breve (3–5 líneas máx).
+4. Confirma que la skill `deck-hola-mundo` del suit `design` está activa.
+5. Incluye el comando de install del suit:
 
 ```bash
-npx skills add haui-ju/haui-deck/suit/design -y
+npx skills add haui-ju/haui-deck/suit/design
 ```
 
-5. Menciona que el playbook UI está en la skill hermana `design` (`/design`).
+6. Menciona la skill hermana `/deck-make-button`.
 
 ## Example reply
 
 > Hola — haui-deck / suit **design** OK (`deck-hola-mundo`).
-> Playbook UI: `/design`.
-> Pack: `npx skills add haui-ju/haui-deck/suit/design -y`
+> También: `/deck-make-button`.
+> Pack: `npx skills add haui-ju/haui-deck/suit/design`
