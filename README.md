@@ -6,11 +6,25 @@ Organizado en **`suit/`** (bloques). Cada entrada bajo `suit/` contiene una o m√
 
 ## Install
 
-### Suit `design` completo
+### Interactivo (elige agentes)
+
+Sin `-y` el CLI pregunta scope y agentes:
 
 ```bash
-npx skills add haui-ju/haui-deck/suit/design -y
+npx skills add haui-ju/haui-deck/suit/design
 ```
+
+### Suit `design` completo (sin prompts)
+
+```bash
+# todos los agentes detectados
+npx skills add haui-ju/haui-deck/suit/design --agent '*' -y
+
+# solo algunos
+npx skills add haui-ju/haui-deck/suit/design --agent cursor --agent claude-code -y
+```
+
+`-y` salta confirmaciones (incluido el men√∫ de agentes). Si quieres que te pregunte, **no uses `-y`**.
 
 ### Solo una skill
 
@@ -19,10 +33,25 @@ npx skills add haui-ju/haui-deck --skill design -y
 npx skills add haui-ju/haui-deck --skill deck-hola-mundo -y
 ```
 
-### Global / todos los agentes
+### Global
 
 ```bash
-npx skills add haui-ju/haui-deck/suit/design -g --agent '*' -y
+npx skills add haui-ju/haui-deck/suit/design -g --agent cursor -y
+```
+
+## Remove
+
+`remove` usa el **nombre de la skill**, no la URL del repo:
+
+```bash
+# interactivo
+npx skills remove
+
+# por nombre
+npx skills remove design deck-hola-mundo -y
+
+# todo el proyecto
+npx skills remove --all
 ```
 
 ## Suit
