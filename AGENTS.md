@@ -29,7 +29,7 @@ npx skills update
 
 - `/deck-init` → `ensure-haui-deck.mjs` → `.haui-deck/config.json` (preserva `memory` si ya existe).
 - `/deck-make-button` solo lee config (si falta → `/deck-init`).
-- Memoria: `/deck-graphify-init|refresh|status|open|remove|clear`. Si `memory?.enabled === true`, skills de acción pueden consultar el grafo; si `false`, las skills graphify hacen no-op; si `memory` null/ausente, no.
+- Memoria: `/deck-graphify-*`. Si `enabled=false`: noop en init/refresh/open/query; status/remove/clear siguen. Si `memory` null → pedir init.
 - Graphify CLI se instala en el **consumidor**, no como dep de haui-deck.
 - Tests en `tests/`: `pnpm test`.
 

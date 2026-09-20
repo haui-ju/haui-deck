@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Consumer helper (copied to .haui-deck/run-graphify.mjs by deck-graphify-init).
- * Runs graphify CLI against the graph for memory.default (or --block <id>).
+ * Needs sibling .haui-deck/paths.mjs (also copied on init).
  *
  *   node .haui-deck/run-graphify.mjs query "App"
  *   node .haui-deck/run-graphify.mjs explain "App"
@@ -14,6 +14,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { resolveArtifactRel, resolveScope } from "./paths.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
@@ -67,6 +68,16 @@ if (!block) {
   die(`No hay bloque id="${id}". Ids: ${memory.blocks.map((b) => b.id).join(", ")}`);
 }
 
+let scopeAbs;
+let graphAbs;
+try {
+  scopeAbs = resolveScope(root, block.scope).abs;
+  graphAbs = resolveArtifactRel(root, block.artifacts.graph, "graph").abs;
+  resolveArtifactRel(root, block.artifacts.dir, "dir");
+} catch (err) {
+  die(err.message);
+}
+
 const which = spawnSync(process.platform === "win32" ? "where" : "which", ["graphify"], {
   encoding: "utf8",
 });
@@ -77,14 +88,11 @@ const bin = which.stdout.trim().split("\n")[0];
 
 let args;
 if (cmd === "update") {
-  const scope = block.scope === "." ? root : path.join(root, block.scope);
-  args = ["update", scope, ...rest];
+  args = ["update", scopeAbs, ...rest];
 } else if (cmd === "query" || cmd === "explain" || cmd === "path" || cmd === "diagnose") {
-  const graphAbs = path.join(root, block.artifacts.graph);
-  if (!fs.existsSync(graphAbs) && cmd !== "update") {
+  if (!fs.existsSync(graphAbs)) {
     die(`No existe ${block.artifacts.graph}. Corre: pnpm graphify:update`);
   }
-  // diagnose subcommand is "diagnose multigraph"
   if (cmd === "diagnose") {
     args = ["diagnose", "multigraph", ...rest, "--graph", graphAbs];
   } else {

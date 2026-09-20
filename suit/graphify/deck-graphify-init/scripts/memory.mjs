@@ -16,6 +16,27 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL, fileURLToPath } from "node:url";
+import {
+  ID_RE,
+  isInsideRoot,
+  assertInsideRoot,
+  normalizeScope,
+  resolveScope,
+  resolveArtifactRel,
+  idFromScope,
+  artifactsForScope,
+} from "./paths.mjs";
+
+export {
+  ID_RE,
+  isInsideRoot,
+  assertInsideRoot,
+  normalizeScope,
+  resolveScope,
+  resolveArtifactRel,
+  idFromScope,
+  artifactsForScope,
+};
 
 const MISSING_MEMORY = `Ejecuta /deck-graphify-init
 (o /deck-graphify-init <carpeta>)`;
@@ -26,7 +47,6 @@ const DISABLED = `memory.enabled=false`;
 
 const GITIGNORE_LINE = "**/graphify-out/";
 
-const ID_RE = /^[a-zA-Z0-9][a-zA-Z0-9_-]*$/;
 
 export function configPath(root) {
   return path.join(root, ".haui-deck", "config.json");
@@ -52,98 +72,6 @@ export function writeConfig(root, config) {
   const p = configPath(root);
   fs.writeFileSync(p, `${JSON.stringify(config, null, 2)}\n`, "utf8");
   return p;
-}
-
-/** True if absPath is inside root (or equal). */
-export function isInsideRoot(root, absPath) {
-  const rootAbs = path.resolve(root);
-  const target = path.resolve(absPath);
-  const rel = path.relative(rootAbs, target);
-  return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
-}
-
-export function assertInsideRoot(root, absPath, label = "path") {
-  if (!isInsideRoot(root, absPath)) {
-    throw new Error(`${label} fuera del proyecto: ${absPath}`);
-  }
-  return path.resolve(absPath);
-}
-
-/**
- * Normalize scope relative to project root. Rejects escapes and abs outside root.
- * Absolute paths inside root become relative posix paths.
- */
-export function resolveScope(root, scopeArg) {
-  const raw = scopeArg == null || scopeArg === "" ? "." : String(scopeArg);
-  const trimmed = raw.replace(/\\/g, "/").replace(/\/+$/, "") || ".";
-
-  if (trimmed === "." || trimmed === "./") {
-    return { scope: ".", abs: path.resolve(root) };
-  }
-
-  // Reject pure parent / empty junk before join
-  const parts = trimmed.split("/").filter((p) => p && p !== ".");
-  if (parts.some((p) => p === "..")) {
-    throw new Error(`scope inválido (contiene ..): ${raw}`);
-  }
-
-  let abs;
-  if (path.isAbsolute(raw)) {
-    abs = path.resolve(raw);
-    assertInsideRoot(root, abs, "scope");
-  } else {
-    abs = path.resolve(root, trimmed);
-    assertInsideRoot(root, abs, "scope");
-  }
-
-  const rel = path.relative(path.resolve(root), abs);
-  const scope =
-    rel === "" ? "." : rel.split(path.sep).join("/");
-  if (scope.startsWith("..")) {
-    throw new Error(`scope fuera del proyecto: ${raw}`);
-  }
-  return { scope, abs };
-}
-
-export function normalizeScope(scope) {
-  // Legacy helper for tests / callers — string-only, no root check.
-  if (!scope || scope === "." || scope === "./") return ".";
-  return String(scope).replace(/\\/g, "/").replace(/\/+$/, "") || ".";
-}
-
-export function resolveArtifactRel(root, relPath, label = "artifact") {
-  const rel = String(relPath).replace(/\\/g, "/");
-  if (!rel || rel.split("/").includes("..")) {
-    throw new Error(`${label} inválido: ${relPath}`);
-  }
-  const abs = path.resolve(root, rel);
-  assertInsideRoot(root, abs, label);
-  // Store as posix relative from root
-  const out = path.relative(path.resolve(root), abs).split(path.sep).join("/");
-  if (!out || out.startsWith("..")) {
-    throw new Error(`${label} fuera del proyecto: ${relPath}`);
-  }
-  return { rel: out, abs };
-}
-
-export function idFromScope(scope) {
-  const s = normalizeScope(scope);
-  if (s === ".") return "root";
-  const parts = s.split("/").filter(Boolean);
-  let base = (parts[parts.length - 1] || "block").replace(/[^a-zA-Z0-9_-]+/g, "-");
-  base = base.replace(/^-+|-+$/g, "");
-  if (!base || base === "-" || !ID_RE.test(base)) return "block";
-  return base;
-}
-
-export function artifactsForScope(scope) {
-  const s = normalizeScope(scope);
-  const dir = s === "." ? "graphify-out" : path.posix.join(s, "graphify-out");
-  return {
-    dir,
-    graph: path.posix.join(dir, "graph.json"),
-    html: path.posix.join(dir, "graph.html"),
-  };
 }
 
 export function makeBlock(scope, id) {
@@ -258,9 +186,11 @@ export function assertMemoryShape(raw) {
 }
 
 /**
- * Load config + validated memory. Handles missing deck / missing memory / disabled / bad shape.
+ * Load config + validated memory.
+ * @param {{ allowWhenDisabled?: boolean }} [opts]
+ *   allowWhenDisabled: status/remove/clear may run when enabled=false (no noop).
  */
-export function requireMemoryConfig(root) {
+export function requireMemoryConfig(root, { allowWhenDisabled = false } = {}) {
   const { config, missingFile } = readConfig(root);
   if (missingFile || !config) {
     return { ok: false, code: 1, message: MISSING_DECK };
@@ -278,22 +208,10 @@ export function requireMemoryConfig(root) {
   try {
     memory = assertMemoryShape(config.memory);
   } catch (err) {
-    // Empty blocks → treat as no memory (UX: ask init)
     if (String(err.message).includes("blocks[] vacío")) {
       return { ok: false, code: 1, message: MISSING_MEMORY };
     }
     return { ok: false, code: 1, message: err.message };
-  }
-
-  if (memory.enabled === false) {
-    return {
-      ok: true,
-      code: 0,
-      noop: true,
-      message: DISABLED,
-      config: { ...config, memory },
-      memory,
-    };
   }
 
   // Validate artifact paths stay inside root
@@ -306,6 +224,17 @@ export function requireMemoryConfig(root) {
     }
   } catch (err) {
     return { ok: false, code: 1, message: err.message };
+  }
+
+  if (memory.enabled === false && !allowWhenDisabled) {
+    return {
+      ok: true,
+      code: 0,
+      noop: true,
+      message: DISABLED,
+      config: { ...config, memory },
+      memory,
+    };
   }
 
   return {
@@ -389,17 +318,23 @@ const PACKAGE_SCRIPTS = {
   "graphify:diagnose": "node .haui-deck/run-graphify.mjs diagnose",
 };
 
-/** Copy consumer helper into .haui-deck/run-graphify.mjs */
+/** Copy consumer helper + paths into .haui-deck/ */
 export function ensureConsumerRunner(root) {
-  const src = path.join(
-    path.dirname(fileURLToPath(import.meta.url)),
-    "consumer-run-graphify.mjs",
-  );
+  const scriptsDir = path.dirname(fileURLToPath(import.meta.url));
   const destDir = path.join(root, ".haui-deck");
-  const dest = path.join(destDir, "run-graphify.mjs");
   fs.mkdirSync(destDir, { recursive: true });
-  fs.copyFileSync(src, dest);
-  return { path: ".haui-deck/run-graphify.mjs" };
+  fs.copyFileSync(
+    path.join(scriptsDir, "paths.mjs"),
+    path.join(destDir, "paths.mjs"),
+  );
+  fs.copyFileSync(
+    path.join(scriptsDir, "consumer-run-graphify.mjs"),
+    path.join(destDir, "run-graphify.mjs"),
+  );
+  return {
+    path: ".haui-deck/run-graphify.mjs",
+    paths: ".haui-deck/paths.mjs",
+  };
 }
 
 /**
@@ -565,9 +500,8 @@ export function cmdRefresh(root, idArg) {
 }
 
 export function cmdStatus(root, idArg) {
-  const gate = requireMemoryConfig(root);
+  const gate = requireMemoryConfig(root, { allowWhenDisabled: true });
   if (!gate.ok) return gate;
-  if (gate.noop) return gate;
   const { memory } = gate;
   const cli = whichGraphify();
   const blocks = idArg ? [findBlock(memory, idArg)].filter(Boolean) : memory.blocks;
@@ -658,9 +592,8 @@ export function cmdOpen(root, idArg) {
 }
 
 export function planRemove(root, idArg) {
-  const gate = requireMemoryConfig(root);
+  const gate = requireMemoryConfig(root, { allowWhenDisabled: true });
   if (!gate.ok) return gate;
-  if (gate.noop) return gate;
   const { memory } = gate;
   const { id, warning } = resolveBlockId(memory, idArg);
   const block = findBlock(memory, id);
@@ -695,7 +628,7 @@ export function planRemove(root, idArg) {
 
 export function cmdRemove(root, idArg, { yes = false } = {}) {
   const plan = planRemove(root, idArg);
-  if (!plan.ok || plan.noop) return plan;
+  if (!plan.ok) return plan;
   if (plan.code === 1) return plan;
   if (!yes) return plan;
 
@@ -734,9 +667,8 @@ export function cmdRemove(root, idArg, { yes = false } = {}) {
 }
 
 export function planClear(root) {
-  const gate = requireMemoryConfig(root);
+  const gate = requireMemoryConfig(root, { allowWhenDisabled: true });
   if (!gate.ok) return gate;
-  if (gate.noop) return gate;
   const { memory } = gate;
   for (const b of memory.blocks) {
     const bad = requireGraphifyProvider(b);
@@ -762,7 +694,7 @@ export function planClear(root) {
 
 export function cmdClear(root, { yes = false } = {}) {
   const plan = planClear(root);
-  if (!plan.ok || plan.noop) return plan;
+  if (!plan.ok) return plan;
   if (plan.code === 1) return plan;
   if (!yes) return plan;
 

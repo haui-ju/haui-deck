@@ -1,6 +1,6 @@
 # Suit `graphify`
 
-Memoria Graphify en el **proyecto consumidor** (un solo `memory.mjs` en `deck-graphify-init`; el resto usa `scripts/run.mjs`).
+Memoria Graphify en el **proyecto consumidor** (`memory.mjs` + `paths.mjs` en init; el resto usa `scripts/run.mjs`).
 
 | Skill | Slash |
 |-------|-------|
@@ -15,11 +15,11 @@ Memoria Graphify en el **proyecto consumidor** (un solo `memory.mjs` en `deck-gr
 npx skills add haui-ju/haui-deck/suit/graphify
 ```
 
-- Instalar el **suit completo** (wrappers resuelven `deck-graphify-init`).
-- Paths de `scope` / `artifacts` siempre **dentro** del proyecto.
-- `memory.enabled=false` → skills no-op (el usuario no quiere memoria).
-- `/deck-graphify-clear` no quita la línea `**/graphify-out/` del `.gitignore`.
-- Tras init: scripts en `package.json` (sin agente):
+- Instalar el **suit completo**.
+- Paths siempre **dentro** del proyecto (skills + `.haui-deck/run-graphify.mjs` + `paths.mjs`).
+- `memory.enabled=false`: noop en init/refresh/open/query; **status / remove / clear** siguen.
+- Clear **no** revierte gitignore ni quita scripts/`run-graphify.mjs`.
+- Scripts sin agente (tras init):
 
 ```bash
 pnpm graphify:query -- "App"
@@ -27,6 +27,5 @@ pnpm graphify:explain -- "App"
 pnpm graphify:path -- "A" "B"
 pnpm graphify:update
 pnpm graphify:diagnose
-# bloque concreto:
 node .haui-deck/run-graphify.mjs query --block components "App"
 ```

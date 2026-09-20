@@ -150,7 +150,7 @@ test("ids duplicados → error", () => {
   assert.match(r.message, /duplicado/);
 });
 
-test("enabled false → noop todas las cmds", () => {
+test("enabled false → status/remove OK; init/refresh noop", () => {
   const root = tmpProject({});
   const block = mem.makeBlock(".", "root");
   writeCfg(root, {
@@ -163,17 +163,53 @@ test("enabled false → noop todas las cmds", () => {
   fs.mkdirSync(art);
   fs.writeFileSync(path.join(art, "x"), "1");
 
-  for (const args of [["status"], ["refresh"], ["init"], ["remove", "--yes"], ["clear", "--yes"]]) {
+  const st = mem.main(["status"], root);
+  assert.equal(st.ok, true);
+  assert.equal(st.noop, undefined);
+  assert.equal(st.enabled, false);
+
+  for (const args of [["refresh"], ["init"], ["open"]]) {
     const r = mem.main(args, root);
     assert.equal(r.ok, true);
     assert.equal(r.noop, true);
-    assert.match(r.message, /enabled=false/);
   }
   assert.ok(fs.existsSync(art));
-  const disk = JSON.parse(
-    fs.readFileSync(path.join(root, ".haui-deck", "config.json"), "utf8"),
+
+  const rem = mem.main(["remove", "--yes"], root);
+  assert.equal(rem.ok, true);
+  assert.equal(rem.memory, null);
+  assert.equal(fs.existsSync(art), false);
+});
+
+test("ensureConsumerRunner copia paths + run-graphify; runner rechaza escape", () => {
+  const root = tmpProject({});
+  const block = {
+    id: "root",
+    provider: "graphify",
+    scope: ".",
+    artifacts: {
+      dir: "../OUTSIDE",
+      graph: "../OUTSIDE/g.json",
+      html: "../OUTSIDE/g.html",
+    },
+  };
+  writeCfg(root, {
+    version: 1,
+    design: null,
+    product: null,
+    memory: { enabled: true, default: "root", blocks: [block] },
+  });
+  mem.ensureConsumerRunner(root);
+  assert.ok(fs.existsSync(path.join(root, ".haui-deck", "paths.mjs")));
+  assert.ok(fs.existsSync(path.join(root, ".haui-deck", "run-graphify.mjs")));
+
+  const r = spawnSync(
+    process.execPath,
+    [path.join(root, ".haui-deck", "run-graphify.mjs"), "query", "x"],
+    { cwd: root, encoding: "utf8" },
   );
-  assert.equal(disk.memory.enabled, false);
+  assert.notEqual(r.status, 0);
+  assert.match(String(r.stderr || r.stdout), /inválido|fuera/);
 });
 
 test("default fantasma → usa primer bloque", () => {
@@ -288,19 +324,12 @@ test("ensurePackageScripts crea package.json y scripts", () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
   assert.equal(pkg.scripts["graphify:query"], "node .haui-deck/run-graphify.mjs query");
   assert.equal(pkg.scripts["graphify:explain"], "node .haui-deck/run-graphify.mjs explain");
-  // second call does not duplicate / overwrite custom
   pkg.scripts["graphify:query"] = "custom";
   fs.writeFileSync(path.join(root, "package.json"), `${JSON.stringify(pkg, null, 2)}\n`);
   const r2 = mem.ensurePackageScripts(root);
   assert.equal(r2.created, false);
   const pkg2 = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
   assert.equal(pkg2.scripts["graphify:query"], "custom");
-});
-
-test("ensureConsumerRunner copia run-graphify.mjs", () => {
-  const root = tmpProject({});
-  const r = mem.ensureConsumerRunner(root);
-  assert.ok(fs.existsSync(path.join(root, r.path)));
 });
 
 test("init exige deck-init", () => {

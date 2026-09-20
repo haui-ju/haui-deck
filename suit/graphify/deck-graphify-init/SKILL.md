@@ -13,11 +13,22 @@ disable-model-invocation: true
 
 1. cwd = raíz del proyecto.
 2. Si falta `.haui-deck/config.json` → responde solo `Ejecuta /deck-init` y para.
-3. Scope = arg del usuario, o `.`.
-4. Ejecuta:
+3. Si `memory.enabled=false` → no-op (el usuario pausó memoria).
+4. Scope = arg del usuario, o `.`.
+5. Ejecuta:
 
 ```bash
 node <path-to-this-skill>/scripts/memory.mjs init [scope]
 ```
 
-5. Responde breve (ok + id del bloque). Menciona scripts npm si se añadieron (`pnpm graphify:query`, etc.). No inventes DESIGN/PRODUCT.
+6. Responde breve (ok + id). Menciona scripts npm si se añadieron:
+
+```bash
+pnpm graphify:query -- "…"
+pnpm graphify:explain -- "…"
+pnpm graphify:path -- "A" "B"
+pnpm graphify:update
+pnpm graphify:diagnose
+```
+
+No inventes DESIGN/PRODUCT.
