@@ -15,7 +15,7 @@
     "skills"
   ],
   "scripts": {
-    "test": "node tests/deck-init/ensure-haui-deck.test.mjs"
+    "test": "node tests/deck-init/ensure-haui-deck.test.mjs && node tests/graphify/memory.test.mjs"
   },
   "type": "module"
 }

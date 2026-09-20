@@ -1,10 +1,45 @@
 {
   "version": 1,
   "skills": {
+    "deck-graphify-clear": {
+      "source": "./suit/graphify",
+      "sourceType": "local",
+      "computedHash": "71b4ffefd585f7e3463a23fe77873492fb31faae6c7fec4f2d2dc8368b763ea0"
+    },
+    "deck-graphify-init": {
+      "source": "./suit/graphify",
+      "sourceType": "local",
+      "computedHash": "7c0b0a75be6da98d3edb80a0c7aaebfb7437254fc0759cee3428f5fd9470486f"
+    },
+    "deck-graphify-open": {
+      "source": "./suit/graphify",
+      "sourceType": "local",
+      "computedHash": "1e4d874f4452016f8042491644e0d7ddad329b83255892d513998ca267c404e5"
+    },
+    "deck-graphify-refresh": {
+      "source": "./suit/graphify",
+      "sourceType": "local",
+      "computedHash": "982600dfabcf4ba424aa125df355e3a414852c6ab12d1b76dd2994e5f96d20b3"
+    },
+    "deck-graphify-remove": {
+      "source": "./suit/graphify",
+      "sourceType": "local",
+      "computedHash": "da66974aaa23ae8971a349dbbfb6ec195bf518613361dea37398ea1a1685317d"
+    },
+    "deck-graphify-status": {
+      "source": "./suit/graphify",
+      "sourceType": "local",
+      "computedHash": "82f41789ccccb57425e80aaa7435a3b1111e8faf60a83854742d88cbbacf2f4e"
+    },
+    "deck-init": {
+      "source": "./suit/design",
+      "sourceType": "local",
+      "computedHash": "a7916e437d310168f4e7bcc17a42cf8b5c32fd4ab98d4cdc1d22aafc3dd19007"
+    },
     "review-skill": {
       "source": "./suit/meta",
       "sourceType": "local",
-      "computedHash": "b673661e4806a522f4182889fada749fb78d670c826266430e3a0e3d997da8f0"
+      "computedHash": "7f7ad33a1723adb3a09c8c3ebafec11a5e6396e7e1cd47986a124785e0063b4a"
     },
     "skill-creator": {
       "source": "anthropics/skills",

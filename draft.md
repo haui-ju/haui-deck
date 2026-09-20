@@ -16,7 +16,7 @@
 | `app` | native + `@haui-deck/app` | móvil / Expo |
 | `py` | `py` | Python |
 | `api` | `api` | backend |
-| `mem` | `graphify` | memoria Graphify |
+| `graphify` | `deck-graphify-*` | memoria (hecho en suit/) |
 
 ## Pendiente
 

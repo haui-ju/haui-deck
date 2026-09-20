@@ -6,19 +6,30 @@ Apply when the target is under this repository.
 
 | Kind | Path |
 |------|------|
-| Product skill | `suit/<suit>/<skill>/SKILL.md` (e.g. `suit/design/…`) |
+| Product skill | `suit/<suit>/<skill>/SKILL.md` (e.g. `suit/design/…`, `suit/graphify/…`) |
 | Maintainer / meta skill | `suit/meta/<skill>/SKILL.md` (e.g. `suit/meta/review-skill/`) |
 | Local install (runtime) | `.agents/skills/<skill>/` via `npx skills add` — not source |
 
-Never place skills at repo root.
+Never place skills at repo root. Never ship `graphifyy` as a dependency of this repo.
 
 ## Suit `design` (current)
 
 | Skill | Job | May touch `.haui-deck` / DESIGN / PRODUCT |
 |-------|-----|------------------------------------------|
-| `deck-init` | Detect MD → write `.haui-deck/config.json` via `scripts/ensure-haui-deck.mjs` | Yes (create config only; never invent MD) |
+| `deck-init` | Detect MD → write `.haui-deck/config.json` via `scripts/ensure-haui-deck.mjs` | Yes (create config only; never invent MD; **preserve `memory`**) |
 | `deck-hola-mundo` | Smoke reply | No |
-| `deck-make-button` | Create button; default label `boton` | Read config only; if missing → tell user to `/deck-init` |
+| `deck-make-button` | Create button; default label `boton` | Read config only; if missing → `/deck-init`. If `memory.enabled` → may query graph |
+
+## Suit `graphify` (current)
+
+| Skill | Job |
+|-------|-----|
+| `deck-graphify-init` | Ensure Graphify CLI in consumer, index scope, write `memory` blocks |
+| `deck-graphify-refresh` | Re-index block (`default` if no id) |
+| `deck-graphify-status` | CLI + blocks status |
+| `deck-graphify-open` | Open `artifacts.html` (`default` if no id) |
+| `deck-graphify-remove` | Remove one block after confirm |
+| `deck-graphify-clear` | Wipe all memory after confirm |
 
 ## Suit `meta` (current)
 
@@ -28,15 +39,15 @@ Never place skills at repo root.
 
 ## Consumer project contract
 
-- Optional `.haui-deck/config.json` with `design` / `product` paths or `null`.
+- `.haui-deck/config.json`: `design` / `product` / optional `memory` (`enabled`, `default`, `blocks[]` with `provider`/`scope`/`artifacts`).
+- `memory: null` or absent → no Graphify memory yet.
 - Shared with Impeccable-style workflows: root `DESIGN.md`, `PRODUCT.md`.
-- No mandatory `components.md` / `tokens.md` index in v0.
+- Ignore `**/graphify-out/`.
 
 ## Install paths
 
 ```bash
 npx skills add haui-ju/haui-deck/suit/design
+npx skills add haui-ju/haui-deck/suit/graphify
 npx skills add haui-ju/haui-deck/suit/meta
-# or
-npx skills add haui-ju/haui-deck --skill review-skill --full-depth
 ```
