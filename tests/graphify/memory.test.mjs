@@ -280,10 +280,27 @@ test("clear --yes limpia todos", () => {
   assert.equal(done.memory, null);
 });
 
-test("ensureGitignore append", () => {
-  const root = tmpProject({ ".gitignore": "node_modules/\n" });
-  const r = mem.ensureGitignore(root);
-  assert.equal(r.appended, true);
+test("ensurePackageScripts crea package.json y scripts", () => {
+  const root = tmpProject({});
+  const r = mem.ensurePackageScripts(root);
+  assert.equal(r.created, true);
+  assert.ok(r.added.includes("graphify:query"));
+  const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+  assert.equal(pkg.scripts["graphify:query"], "node .haui-deck/run-graphify.mjs query");
+  assert.equal(pkg.scripts["graphify:explain"], "node .haui-deck/run-graphify.mjs explain");
+  // second call does not duplicate / overwrite custom
+  pkg.scripts["graphify:query"] = "custom";
+  fs.writeFileSync(path.join(root, "package.json"), `${JSON.stringify(pkg, null, 2)}\n`);
+  const r2 = mem.ensurePackageScripts(root);
+  assert.equal(r2.created, false);
+  const pkg2 = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+  assert.equal(pkg2.scripts["graphify:query"], "custom");
+});
+
+test("ensureConsumerRunner copia run-graphify.mjs", () => {
+  const root = tmpProject({});
+  const r = mem.ensureConsumerRunner(root);
+  assert.ok(fs.existsSync(path.join(root, r.path)));
 });
 
 test("init exige deck-init", () => {

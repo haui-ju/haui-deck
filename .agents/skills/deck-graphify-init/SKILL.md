@@ -20,4 +20,4 @@ disable-model-invocation: true
 node <path-to-this-skill>/scripts/memory.mjs init [scope]
 ```
 
-5. Responde breve (ok + id del bloque). No inventes DESIGN/PRODUCT.
+5. Responde breve (ok + id del bloque). Menciona scripts npm si se añadieron (`pnpm graphify:query`, etc.). No inventes DESIGN/PRODUCT.

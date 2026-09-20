@@ -15,7 +15,7 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
+import { pathToFileURL, fileURLToPath } from "node:url";
 
 const MISSING_MEMORY = `Ejecuta /deck-graphify-init
 (o /deck-graphify-init <carpeta>)`;
@@ -381,6 +381,62 @@ export function ensureGitignore(root) {
   return { created: false, appended: true };
 }
 
+const PACKAGE_SCRIPTS = {
+  "graphify:query": "node .haui-deck/run-graphify.mjs query",
+  "graphify:explain": "node .haui-deck/run-graphify.mjs explain",
+  "graphify:path": "node .haui-deck/run-graphify.mjs path",
+  "graphify:update": "node .haui-deck/run-graphify.mjs update",
+  "graphify:diagnose": "node .haui-deck/run-graphify.mjs diagnose",
+};
+
+/** Copy consumer helper into .haui-deck/run-graphify.mjs */
+export function ensureConsumerRunner(root) {
+  const src = path.join(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "consumer-run-graphify.mjs",
+  );
+  const destDir = path.join(root, ".haui-deck");
+  const dest = path.join(destDir, "run-graphify.mjs");
+  fs.mkdirSync(destDir, { recursive: true });
+  fs.copyFileSync(src, dest);
+  return { path: ".haui-deck/run-graphify.mjs" };
+}
+
+/**
+ * Ensure package.json exists and has graphify:* scripts (merge; do not overwrite existing keys).
+ */
+export function ensurePackageScripts(root) {
+  const pkgPath = path.join(root, "package.json");
+  let pkg;
+  let created = false;
+  if (fs.existsSync(pkgPath)) {
+    try {
+      pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+    } catch (err) {
+      throw new Error(`package.json inválido: ${err.message}`);
+    }
+  } else {
+    created = true;
+    pkg = {
+      name: path.basename(path.resolve(root)) || "project",
+      private: true,
+      scripts: {},
+    };
+  }
+  if (!pkg.scripts || typeof pkg.scripts !== "object") pkg.scripts = {};
+  const added = [];
+  for (const [key, value] of Object.entries(PACKAGE_SCRIPTS)) {
+    if (!pkg.scripts[key]) {
+      pkg.scripts[key] = value;
+      added.push(key);
+    }
+  }
+  if (created || added.length > 0) {
+    fs.writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`, "utf8");
+  }
+  return { created, added, scripts: PACKAGE_SCRIPTS };
+}
+
 function rmDirSafe(abs) {
   if (fs.existsSync(abs)) {
     fs.rmSync(abs, { recursive: true, force: true });
@@ -432,6 +488,14 @@ export function cmdInit(root, scopeArg) {
   }
 
   const gi = ensureGitignore(root);
+  let pkgScripts;
+  let runner;
+  try {
+    runner = ensureConsumerRunner(root);
+    pkgScripts = ensurePackageScripts(root);
+  } catch (err) {
+    return { ok: false, code: 1, message: String(err.message ?? err) };
+  }
 
   let memory =
     config.memory && typeof config.memory === "object" && !Array.isArray(config.memory)
@@ -470,6 +534,8 @@ export function cmdInit(root, scopeArg) {
     block,
     memory,
     gitignore: gi,
+    runner,
+    packageScripts: pkgScripts,
     configPath: configPath(root),
   };
 }

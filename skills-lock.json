@@ -9,7 +9,7 @@
     "deck-graphify-init": {
       "source": "./suit/graphify",
       "sourceType": "local",
-      "computedHash": "dbd5fadff17c66f5ce2e37b190f0b8524d66b575d14f9cbcb34377e644f08129"
+      "computedHash": "c3198dbc057fdbe179b650b85b73f72538066aba00ed383dc942b4180cc634f4"
     },
     "deck-graphify-open": {
       "source": "./suit/graphify",
