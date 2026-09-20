@@ -231,7 +231,7 @@ test("default fantasma → usa primer bloque", () => {
   assert.match(resolved.warning, /ghost/);
 });
 
-test("remove rechaza artifacts.dir escapado", () => {
+test("remove artifacts.dir escapado → limpia config; hermano intacto", () => {
   const root = tmpProject({});
   const block = {
     id: "root",
@@ -254,8 +254,10 @@ test("remove rechaza artifacts.dir escapado", () => {
   fs.writeFileSync(path.join(outside, "keep"), "1");
 
   const r = mem.main(["remove", "--yes"], root);
-  assert.equal(r.ok, false);
-  assert.match(r.message, /fuera|inválido/);
+  assert.equal(r.ok, true);
+  assert.equal(r.memory, null);
+  assert.equal(r.deleteMode, "skip");
+  assert.match(r.warning || "", /config|FS|inválido|fuera/);
   assert.ok(fs.existsSync(path.join(outside, "keep")));
   fs.rmSync(outside, { recursive: true, force: true });
 });
@@ -368,7 +370,7 @@ test("init con memory malformada (sin artifacts) → error, no escribe", () => {
   assert.equal(fs.existsSync(path.join(root, "graphify-out")), false);
 });
 
-test("remove con symlink escape → reject; target intacto; config no muta", () => {
+test("remove symlink escape → unlink link; target intacto; config limpia", () => {
   const root = tmpProject({});
   const outside = fs.mkdtempSync(path.join(os.tmpdir(), "haui-escape-"));
   fs.writeFileSync(path.join(outside, "secret"), "keep-me");
@@ -382,18 +384,42 @@ test("remove con symlink escape → reject; target intacto; config no muta", () 
     product: null,
     memory: { enabled: true, default: "root", blocks: [block] },
   });
-  const before = fs.readFileSync(path.join(root, ".haui-deck", "config.json"), "utf8");
 
   const r = mem.main(["remove", "--yes"], root);
-  assert.equal(r.ok, false);
-  assert.match(r.message, /fuera|realpath/);
+  assert.equal(r.ok, true);
+  assert.equal(r.memory, null);
+  assert.equal(r.deleteMode, "unlink");
   assert.ok(fs.existsSync(path.join(outside, "secret")));
-  assert.equal(
-    fs.readFileSync(path.join(root, ".haui-deck", "config.json"), "utf8"),
-    before,
-  );
-  // link still present (we refused to rm)
-  assert.ok(fs.lstatSync(link).isSymbolicLink());
+  assert.equal(fs.existsSync(link), false);
+  fs.rmSync(outside, { recursive: true, force: true });
+});
+
+test("clear con bloque envenenado + normal → memory null; target intacto", () => {
+  const root = tmpProject({});
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), "haui-clear-esc-"));
+  fs.writeFileSync(path.join(outside, "secret"), "keep");
+  const link = path.join(root, "graphify-out");
+  fs.symlinkSync(outside, link);
+
+  const poisoned = mem.makeBlock(".", "root");
+  const normal = mem.makeBlock("src/x", "x");
+  fs.mkdirSync(path.join(root, "src/x"), { recursive: true });
+  fs.mkdirSync(path.join(root, normal.artifacts.dir), { recursive: true });
+  fs.writeFileSync(path.join(root, normal.artifacts.dir, "graph.json"), "{}\n");
+
+  writeCfg(root, {
+    version: 1,
+    design: null,
+    product: null,
+    memory: { enabled: true, default: "root", blocks: [poisoned, normal] },
+  });
+
+  const done = mem.main(["clear", "--yes"], root);
+  assert.equal(done.ok, true);
+  assert.equal(done.memory, null);
+  assert.ok(fs.existsSync(path.join(outside, "secret")));
+  assert.equal(fs.existsSync(link), false);
+  assert.equal(fs.existsSync(path.join(root, normal.artifacts.dir)), false);
   fs.rmSync(outside, { recursive: true, force: true });
 });
 

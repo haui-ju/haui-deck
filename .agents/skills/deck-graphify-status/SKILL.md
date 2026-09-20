@@ -2,8 +2,9 @@
 name: deck-graphify-status
 description: >-
   Show Graphify CLI and memory block status. Without an id, lists all blocks.
-  Works even when memory.enabled=false. If config/memory missing, prints
-  /deck-init or /deck-graphify-init. Use when the user runs /deck-graphify-status.
+  Works even when memory.enabled=false (report enabled in JSON). If
+  config/memory missing, prints /deck-init or /deck-graphify-init. Use when
+  the user runs /deck-graphify-status.
 disable-model-invocation: true
 ---
 
@@ -19,4 +20,4 @@ node <path-to-this-skill>/scripts/run.mjs status [id]
 ```
 
 3. Si pide init → muestra **solo** ese mensaje y para.
-4. Resume breve: enabled, default, bloques (sí con `enabled=false`).
+4. Resume breve: `enabled`, `default`, bloques. Con `enabled=false` informa la pausa (no es error).

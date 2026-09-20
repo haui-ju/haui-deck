@@ -19,5 +19,5 @@ node <path-to-this-skill>/scripts/run.mjs refresh [id]
 ```
 
 3. Si pide init → muestra **solo** ese mensaje y para.
-4. Si `noop: true` / `memory.enabled=false` → **ok, memoria deshabilitada**. No digas que refrescaste.
+4. Si `noop: true` / `message: memory.enabled=false` → **solo** `ok, memoria deshabilitada`. No digas que refrescaste. (exit 0 + noop = pausa.)
 5. Sin id → `memory.default`. Si ok real → **ok**.

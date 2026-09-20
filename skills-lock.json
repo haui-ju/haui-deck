@@ -4,32 +4,32 @@
     "deck-graphify-clear": {
       "source": "./suit/graphify",
       "sourceType": "local",
-      "computedHash": "ef145c730b4ab3e507c4353860c8c7c2a923e7eea9e69576fc1a062885639b06"
+      "computedHash": "6c337510bc61c6b1e60dd5ace64c8796ef431eb92a8b39d3972acdae1fd5466f"
     },
     "deck-graphify-init": {
       "source": "./suit/graphify",
       "sourceType": "local",
-      "computedHash": "227717987b7abde9552f08c5adf54ead3c965d0e0946c825ccc12f9856f0f7ce"
+      "computedHash": "86b26a02481a7dfb3e1cc4fbb7c073c89280c7563e97f054bfc6d47d11c74405"
     },
     "deck-graphify-open": {
       "source": "./suit/graphify",
       "sourceType": "local",
-      "computedHash": "6c4be7ceeafb36a56724b1e850bdcdda2a261313b29a96a8ce7e7b821bc297e1"
+      "computedHash": "4897a974c49048880f0182ea1ba230737c46df233f5c92c11a23cd07cde75055"
     },
     "deck-graphify-refresh": {
       "source": "./suit/graphify",
       "sourceType": "local",
-      "computedHash": "e26f5424f0c9546642f038f2dfdbe6042af6cfd0c085084238458b5e2b62b109"
+      "computedHash": "2d36c732b0199f16d5ed6533b26eb264da51fb90c360d3a6704f3010681db9c0"
     },
     "deck-graphify-remove": {
       "source": "./suit/graphify",
       "sourceType": "local",
-      "computedHash": "43a7cb78804ab7f07368f7c4fbe9eee957fa1cef95b93d5943b20fe93837918e"
+      "computedHash": "b9f7d60c63910b30500b94d695b181cd6cdbecbf76aaecc85354f906c5c61adf"
     },
     "deck-graphify-status": {
       "source": "./suit/graphify",
       "sourceType": "local",
-      "computedHash": "973eba88a34a3a452c0950bde3097a315a6ad4c27439211cab841a1c80428e20"
+      "computedHash": "2f564bcac1b6fd1d914753332f0f982c97dcb632210bfbd03aee716f80ec13d9"
     },
     "deck-init": {
       "source": "./suit/design",

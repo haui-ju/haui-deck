@@ -75,7 +75,7 @@ export function resolveArtifactRel(root, relPath, label = "artifact") {
 
 /**
  * Like resolveArtifactRel, but if the path exists, also require realpath inside root.
- * Rejects symlinks whose target escapes the project (do not rm).
+ * Rejects symlinks whose target escapes the project.
  */
 export function resolveArtifactRelForDelete(root, relPath, label = "artifact") {
   const { rel, abs } = resolveArtifactRel(root, relPath, label);
@@ -101,6 +101,82 @@ export function resolveArtifactRelForDelete(root, relPath, label = "artifact") {
   }
   assertInsideRoot(root, real, `${label} (realpath)`);
   return { rel, abs };
+}
+
+/**
+ * Inspect how an artifact dir would be deleted (no FS mutation).
+ * @returns {{ mode: 'rm'|'unlink'|'skip'|'missing', rel?: string, abs?: string, warning?: string }}
+ */
+export function inspectArtifactDelete(root, relPath, label = "artifact") {
+  let rel;
+  let abs;
+  try {
+    ({ rel, abs } = resolveArtifactRel(root, relPath, label));
+  } catch (err) {
+    return {
+      mode: "skip",
+      warning: `no se tocará FS (${err.message}); se quitará del config`,
+    };
+  }
+
+  let st;
+  try {
+    st = fs.lstatSync(abs);
+  } catch {
+    return { mode: "missing", rel, abs };
+  }
+
+  let real;
+  try {
+    real = fs.realpathSync(abs);
+  } catch {
+    if (st.isSymbolicLink()) {
+      const target = fs.readlinkSync(abs);
+      real = path.isAbsolute(target)
+        ? path.resolve(target)
+        : path.resolve(path.dirname(abs), target);
+    } else {
+      return { mode: "rm", rel, abs };
+    }
+  }
+
+  if (isInsideRoot(root, real)) {
+    return { mode: "rm", rel, abs };
+  }
+
+  if (st.isSymbolicLink()) {
+    return {
+      mode: "unlink",
+      rel,
+      abs,
+      warning: `symlink escapado: solo se eliminará el link (${rel}); target fuera intacto`,
+    };
+  }
+
+  return {
+    mode: "skip",
+    rel,
+    abs,
+    warning: `realpath fuera del proyecto (${real}); no se tocará FS; se quitará del config`,
+  };
+}
+
+/**
+ * Delete artifact dir for remove/clear. Never touches targets outside root.
+ * @returns {{ deleted: boolean, mode: string, rel?: string, abs?: string, warning?: string }}
+ */
+export function safeDeleteArtifactDir(root, relPath, label = "artifact") {
+  const plan = inspectArtifactDelete(root, relPath, label);
+  if (plan.mode === "skip" || plan.mode === "missing") {
+    return { deleted: false, ...plan };
+  }
+  if (plan.mode === "unlink") {
+    fs.unlinkSync(plan.abs);
+    return { deleted: true, ...plan };
+  }
+  // mode === 'rm'
+  fs.rmSync(plan.abs, { recursive: true, force: true });
+  return { deleted: true, ...plan };
 }
 
 export function idFromScope(scope) {

@@ -24,6 +24,8 @@ import {
   resolveScope,
   resolveArtifactRel,
   resolveArtifactRelForDelete,
+  inspectArtifactDelete,
+  safeDeleteArtifactDir,
   idFromScope,
   artifactsForScope,
 } from "./paths.mjs";
@@ -36,6 +38,8 @@ export {
   resolveScope,
   resolveArtifactRel,
   resolveArtifactRelForDelete,
+  inspectArtifactDelete,
+  safeDeleteArtifactDir,
   idFromScope,
   artifactsForScope,
 };
@@ -189,10 +193,14 @@ export function assertMemoryShape(raw) {
 
 /**
  * Load config + validated memory.
- * @param {{ allowWhenDisabled?: boolean }} [opts]
+ * @param {{ allowWhenDisabled?: boolean, skipPathCheck?: boolean }} [opts]
  *   allowWhenDisabled: status/remove/clear may run when enabled=false (no noop).
+ *   skipPathCheck: remove/clear may clean config even if artifact paths escape.
  */
-export function requireMemoryConfig(root, { allowWhenDisabled = false } = {}) {
+export function requireMemoryConfig(
+  root,
+  { allowWhenDisabled = false, skipPathCheck = false } = {},
+) {
   const { config, missingFile } = readConfig(root);
   if (missingFile || !config) {
     return { ok: false, code: 1, message: MISSING_DECK };
@@ -216,16 +224,18 @@ export function requireMemoryConfig(root, { allowWhenDisabled = false } = {}) {
     return { ok: false, code: 1, message: err.message };
   }
 
-  // Validate artifact paths stay inside root
-  try {
-    for (const b of memory.blocks) {
-      resolveArtifactRel(root, b.artifacts.dir, `block ${b.id} dir`);
-      resolveArtifactRel(root, b.artifacts.graph, `block ${b.id} graph`);
-      resolveArtifactRel(root, b.artifacts.html, `block ${b.id} html`);
-      resolveScope(root, b.scope);
+  // Validate artifact paths stay inside root (unless cleanup of poisoned config)
+  if (!skipPathCheck) {
+    try {
+      for (const b of memory.blocks) {
+        resolveArtifactRel(root, b.artifacts.dir, `block ${b.id} dir`);
+        resolveArtifactRel(root, b.artifacts.graph, `block ${b.id} graph`);
+        resolveArtifactRel(root, b.artifacts.html, `block ${b.id} html`);
+        resolveScope(root, b.scope);
+      }
+    } catch (err) {
+      return { ok: false, code: 1, message: err.message };
     }
-  } catch (err) {
-    return { ok: false, code: 1, message: err.message };
   }
 
   if (memory.enabled === false && !allowWhenDisabled) {
@@ -374,14 +384,9 @@ export function ensurePackageScripts(root) {
   return { created, added, scripts: PACKAGE_SCRIPTS };
 }
 
-function rmDirSafe(abs) {
-  try {
-    fs.lstatSync(abs);
-  } catch {
-    return false;
-  }
-  fs.rmSync(abs, { recursive: true, force: true });
-  return true;
+function mergeWarnings(...parts) {
+  const list = parts.flatMap((p) => (p ? [p] : []));
+  return list.length ? list.join("; ") : undefined;
 }
 
 function requireGraphifyProvider(block) {
@@ -611,7 +616,10 @@ export function cmdOpen(root, idArg) {
 }
 
 export function planRemove(root, idArg) {
-  const gate = requireMemoryConfig(root, { allowWhenDisabled: true });
+  const gate = requireMemoryConfig(root, {
+    allowWhenDisabled: true,
+    skipPathCheck: true,
+  });
   if (!gate.ok) return gate;
   const { memory } = gate;
   const { id, warning } = resolveBlockId(memory, idArg);
@@ -625,11 +633,7 @@ export function planRemove(root, idArg) {
   }
   const bad = requireGraphifyProvider(block);
   if (bad) return bad;
-  try {
-    resolveArtifactRelForDelete(root, block.artifacts.dir, "dir");
-  } catch (err) {
-    return { ok: false, code: 1, message: err.message };
-  }
+  const inspect = inspectArtifactDelete(root, block.artifacts.dir, "dir");
   return {
     ok: true,
     code: 2,
@@ -638,10 +642,11 @@ export function planRemove(root, idArg) {
     will: {
       removeBlockId: block.id,
       deleteDir: block.artifacts.dir,
+      deleteMode: inspect.mode,
       configChange: "quitar bloque de memory.blocks (memory→null si queda vacío)",
     },
     block,
-    warning,
+    warning: mergeWarnings(warning, inspect.warning),
   };
 }
 
@@ -660,13 +665,7 @@ export function cmdRemove(root, idArg, { yes = false } = {}) {
   }
   const id = plan.block.id;
   const block = findBlock(memory, id);
-  let absDir;
-  try {
-    absDir = resolveArtifactRelForDelete(root, block.artifacts.dir, "dir").abs;
-  } catch (err) {
-    return { ok: false, code: 1, message: err.message };
-  }
-  const deleted = rmDirSafe(absDir);
+  const del = safeDeleteArtifactDir(root, block.artifacts.dir, "dir");
   memory.blocks = memory.blocks.filter((b) => b.id !== id);
   if (memory.blocks.length === 0) {
     config.memory = null;
@@ -680,23 +679,28 @@ export function cmdRemove(root, idArg, { yes = false } = {}) {
     code: 0,
     action: "remove",
     removedId: id,
-    deletedDir: deleted ? block.artifacts.dir : null,
+    deletedDir: del.deleted ? block.artifacts.dir : null,
+    deleteMode: del.mode,
     memory: config.memory,
+    warning: del.warning,
   };
 }
 
 export function planClear(root) {
-  const gate = requireMemoryConfig(root, { allowWhenDisabled: true });
+  const gate = requireMemoryConfig(root, {
+    allowWhenDisabled: true,
+    skipPathCheck: true,
+  });
   if (!gate.ok) return gate;
   const { memory } = gate;
+  const modes = [];
+  const warnings = [];
   for (const b of memory.blocks) {
     const bad = requireGraphifyProvider(b);
     if (bad) return bad;
-    try {
-      resolveArtifactRelForDelete(root, b.artifacts.dir, "dir");
-    } catch (err) {
-      return { ok: false, code: 1, message: err.message };
-    }
+    const inspect = inspectArtifactDelete(root, b.artifacts.dir, "dir");
+    modes.push({ id: b.id, dir: b.artifacts.dir, mode: inspect.mode });
+    if (inspect.warning) warnings.push(`${b.id}: ${inspect.warning}`);
   }
   return {
     ok: true,
@@ -705,9 +709,11 @@ export function planClear(root) {
     action: "clear",
     will: {
       deleteDirs: memory.blocks.map((b) => b.artifacts.dir),
+      deleteModes: modes,
       configChange: "memory → null",
       blockIds: memory.blocks.map((b) => b.id),
     },
+    warning: warnings.length ? warnings.join("; ") : undefined,
   };
 }
 
@@ -725,13 +731,22 @@ export function cmdClear(root, { yes = false } = {}) {
     return { ok: false, code: 1, message: err.message };
   }
   const deleted = [];
+  const warnings = [];
   for (const b of memory.blocks) {
-    const abs = resolveArtifactRelForDelete(root, b.artifacts.dir, "dir").abs;
-    if (rmDirSafe(abs)) deleted.push(b.artifacts.dir);
+    const del = safeDeleteArtifactDir(root, b.artifacts.dir, "dir");
+    if (del.deleted) deleted.push(b.artifacts.dir);
+    if (del.warning) warnings.push(`${b.id}: ${del.warning}`);
   }
   config.memory = null;
   writeConfig(root, config);
-  return { ok: true, code: 0, action: "clear", deletedDirs: deleted, memory: null };
+  return {
+    ok: true,
+    code: 0,
+    action: "clear",
+    deletedDirs: deleted,
+    memory: null,
+    warning: warnings.length ? warnings.join("; ") : undefined,
+  };
 }
 
 export function main(argv, root = process.cwd()) {

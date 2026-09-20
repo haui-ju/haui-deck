@@ -19,7 +19,7 @@ disable-model-invocation: true
 node <path-to-this-skill>/scripts/memory.mjs init [scope]
 ```
 
-4. Si el JSON tiene `noop: true` / `memory.enabled=false` → responde solo **ok, memoria deshabilitada**. No digas que indexaste.
+4. Si el JSON tiene `noop: true` / `message: memory.enabled=false` → responde **solo** `ok, memoria deshabilitada`. No digas indexado/éxito de indexación. (exit 0 + noop es pausa, no error.)
 5. Si ok real → breve (ok + id) y scripts npm si se añadieron:
 
 ```bash
@@ -29,5 +29,13 @@ pnpm graphify:path -- "A" "B"
 pnpm graphify:update
 pnpm graphify:diagnose
 ```
+
+Sub-scope / bloque concreto:
+
+```bash
+pnpm graphify:query -- --block <id> "…"
+```
+
+Nota: `graphify:path` puede salir 0 sin path dirigido (ambigüedad del CLI Graphify, no del deck).
 
 No inventes DESIGN/PRODUCT.
