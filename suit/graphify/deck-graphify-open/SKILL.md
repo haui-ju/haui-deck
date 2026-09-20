@@ -1,9 +1,9 @@
 ---
 name: deck-graphify-open
 description: >-
-  Open the Graphify HTML report for a memory block. Without an id, opens
-  memory.default. If memory is missing, point to /deck-graphify-init. Use when
-  the user runs /deck-graphify-open or asks to open the Graphify HTML.
+  Open the Graphify HTML for a memory block. Without an id, opens memory.default.
+  If config/memory missing, prints /deck-init or /deck-graphify-init. Use when
+  the user runs /deck-graphify-open.
 disable-model-invocation: true
 ---
 
@@ -15,8 +15,8 @@ disable-model-invocation: true
 2. Ejecuta:
 
 ```bash
-node <path-to-this-skill>/scripts/memory.mjs open [id]
+node <path-to-this-skill>/scripts/run.mjs open [id]
 ```
 
-3. Si falta `memory`, muestra el mensaje del script y para.
-4. Sin id → `memory.default`. Si no abre el OS, muestra la ruta `htmlAbs`.
+3. Si pide init → muestra **solo** ese mensaje y para.
+4. Sin id → `memory.default`. Responde **ok** (o ruta html).

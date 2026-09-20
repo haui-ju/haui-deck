@@ -105,6 +105,15 @@ test("actualiza config si aparece PRODUCT.md después", () => {
   assert.equal(cfg.product, "PRODUCT.md");
 });
 
+test("re-run sin cambios → wroteConfig false", () => {
+  const root = tmpProject({ "DESIGN.md": "# d\n" });
+  ensureHauiDeck(root);
+  const r = ensureHauiDeck(root);
+  assert.equal(r.createdDir, false);
+  assert.equal(r.wroteConfig, false);
+  assert.equal(r.config.design, "DESIGN.md");
+});
+
 if (process.exitCode) {
   console.error("\nFAIL");
   process.exit(1);

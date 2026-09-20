@@ -9,16 +9,15 @@ disable-model-invocation: true
 
 # Deck graphify init
 
-Requiere `.haui-deck/config.json` (si falta → `/deck-init`).
-
 ## Instructions
 
 1. cwd = raíz del proyecto.
-2. Scope = arg del usuario, o `.` (root).
-3. Ejecuta:
+2. Si falta `.haui-deck/config.json` → responde solo `Ejecuta /deck-init` y para.
+3. Scope = arg del usuario, o `.`.
+4. Ejecuta:
 
 ```bash
 node <path-to-this-skill>/scripts/memory.mjs init [scope]
 ```
 
-4. Muestra JSON breve (block id, artifacts, enabled). No inventes DESIGN/PRODUCT.
+5. Responde breve (ok + id del bloque). No inventes DESIGN/PRODUCT.

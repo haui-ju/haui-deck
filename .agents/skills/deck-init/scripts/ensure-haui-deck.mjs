@@ -131,9 +131,15 @@ function main(argv) {
   }
 
   const result = ensureHauiDeck(root, { write: true });
+  const status = result.createdDir
+    ? "created"
+    : result.wroteConfig
+      ? "updated"
+      : "unchanged";
   console.log(
     JSON.stringify(
       {
+        status,
         createdDir: result.createdDir,
         wroteConfig: result.wroteConfig,
         found: result.found,

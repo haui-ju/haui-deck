@@ -17,19 +17,20 @@ Never place skills at repo root. Never ship `graphifyy` as a dependency of this 
 | Skill | Job | May touch `.haui-deck` / DESIGN / PRODUCT |
 |-------|-----|------------------------------------------|
 | `deck-init` | Detect MD → write `.haui-deck/config.json` via `scripts/ensure-haui-deck.mjs` | Yes (create config only; never invent MD; **preserve `memory`**) |
-| `deck-hola-mundo` | Smoke reply | No |
-| `deck-make-button` | Create button; default label `boton` | Read config only; if missing → `/deck-init`. If `memory.enabled` → may query graph |
+| `deck-make-button` | Create button; default label `boton` | Read config only; if missing → `/deck-init` |
 
 ## Suit `graphify` (current)
 
 | Skill | Job |
 |-------|-----|
-| `deck-graphify-init` | Ensure Graphify CLI in consumer, index scope, write `memory` blocks |
-| `deck-graphify-refresh` | Re-index block (`default` if no id) |
-| `deck-graphify-status` | CLI + blocks status |
-| `deck-graphify-open` | Open `artifacts.html` (`default` if no id) |
+| `deck-graphify-init` | Ensure Graphify CLI; sole owner of `scripts/memory.mjs` |
+| `deck-graphify-refresh` | Re-index via `scripts/run.mjs` → init’s memory.mjs |
+| `deck-graphify-status` | Status via run.mjs |
+| `deck-graphify-open` | Open HTML via run.mjs |
 | `deck-graphify-remove` | Remove one block after confirm |
 | `deck-graphify-clear` | Wipe all memory after confirm |
+
+Require full suit install so `../../deck-graphify-init/scripts/memory.mjs` resolves.
 
 ## Suit `meta` (current)
 

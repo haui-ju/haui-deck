@@ -5,6 +5,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import assert from "node:assert/strict";
 
@@ -74,7 +75,7 @@ test("ensure-haui-deck preserva memory", () => {
   assert.equal(next.memory.blocks[0].id, "root");
 });
 
-test("refresh/open/status sin memory → mensaje", () => {
+test("refresh/open/status sin memory → graphify-init", () => {
   const root = tmpProject({});
   fs.mkdirSync(path.join(root, ".haui-deck"));
   fs.writeFileSync(
@@ -84,7 +85,18 @@ test("refresh/open/status sin memory → mensaje", () => {
   for (const cmd of ["refresh", "status", "open", "remove", "clear"]) {
     const r = mem.main([cmd], root);
     assert.equal(r.ok, false);
-    assert.match(r.message, /Falta memory/);
+    assert.match(r.message, /deck-graphify-init/);
+    assert.doesNotMatch(r.message, /\/deck-init$/m);
+  }
+});
+
+test("refresh sin config.json → deck-init", () => {
+  const root = tmpProject({});
+  for (const cmd of ["refresh", "status", "open", "remove", "clear"]) {
+    const r = mem.main([cmd], root);
+    assert.equal(r.ok, false);
+    assert.match(r.message, /\/deck-init/);
+    assert.doesNotMatch(r.message, /deck-graphify-init/);
   }
 });
 
@@ -162,6 +174,20 @@ test("init exige deck-init", () => {
   const r = mem.main(["init"], root);
   assert.equal(r.ok, false);
   assert.match(r.message, /deck-init/);
+});
+
+test("run.mjs refresh sin config → deck-init via wrapper", () => {
+  const root = tmpProject({});
+  const runPath = path.resolve(
+    __dirname,
+    "../../suit/graphify/deck-graphify-refresh/scripts/run.mjs",
+  );
+  const r = spawnSync(process.execPath, [runPath, "refresh"], {
+    cwd: root,
+    encoding: "utf8",
+  });
+  assert.notEqual(r.status, 0);
+  assert.match(String(r.stderr || r.stdout), /\/deck-init/);
 });
 
 if (process.exitCode) {

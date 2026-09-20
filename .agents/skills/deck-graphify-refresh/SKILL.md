@@ -2,8 +2,8 @@
 name: deck-graphify-refresh
 description: >-
   Re-index an existing Graphify memory block. Without an id, refreshes
-  memory.default. If memory is missing, tell the user to run /deck-graphify-init.
-  Use when the user runs /deck-graphify-refresh or asks to refresh Graphify.
+  memory.default. If config/memory missing, prints /deck-init or
+  /deck-graphify-init. Use when the user runs /deck-graphify-refresh.
 disable-model-invocation: true
 ---
 
@@ -15,8 +15,8 @@ disable-model-invocation: true
 2. Ejecuta:
 
 ```bash
-node <path-to-this-skill>/scripts/memory.mjs refresh [id]
+node <path-to-this-skill>/scripts/run.mjs refresh [id]
 ```
 
-3. Si el script dice que falta `memory`, muestra ese mensaje tal cual (init root o carpeta) y para.
-4. Sin id → refresca `memory.default`. Responde breve: id + ok/error.
+3. Si pide init → muestra **solo** ese mensaje y para.
+4. Sin id → `memory.default`. Responde **ok**.

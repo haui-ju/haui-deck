@@ -1,6 +1,6 @@
 # Suit `graphify`
 
-Skills guía para memoria Graphify en el **proyecto consumidor** (haui-deck no empaca el CLI).
+Memoria Graphify en el **proyecto consumidor** (un solo `memory.mjs` en `deck-graphify-init`; el resto usa `scripts/run.mjs`).
 
 | Skill | Slash |
 |-------|-------|
@@ -15,4 +15,4 @@ Skills guía para memoria Graphify en el **proyecto consumidor** (haui-deck no e
 npx skills add haui-ju/haui-deck/suit/graphify
 ```
 
-Requiere `/deck-init` antes. Config: `memory.enabled`, `memory.default`, `memory.blocks[]`.
+Instalar el **suit completo** (refresh/open/… necesitan `deck-graphify-init` al lado).

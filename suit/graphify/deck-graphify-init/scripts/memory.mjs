@@ -18,12 +18,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-const MISSING_MEMORY = `Falta memory en .haui-deck/config.json. Primero inicializa:
+const MISSING_MEMORY = `Ejecuta /deck-graphify-init
+(o /deck-graphify-init <carpeta>)`;
 
-  /deck-graphify-init              → grafo en la raíz del proyecto
-  /deck-graphify-init src/foo      → grafo solo en esa carpeta
-
-Luego vuelve a correr la skill.`;
+const MISSING_DECK = `Ejecuta /deck-init`;
 
 const GITIGNORE_LINE = "**/graphify-out/";
 
@@ -111,6 +109,18 @@ export function hasMemory(config) {
   return Boolean(config && Object.prototype.hasOwnProperty.call(config, "memory") && config.memory);
 }
 
+/** Config + memory required. Distinguishes /deck-init vs /deck-graphify-init. */
+export function requireMemoryConfig(root) {
+  const { config, missingFile } = readConfig(root);
+  if (missingFile || !config) {
+    return { ok: false, code: 1, message: MISSING_DECK };
+  }
+  if (!hasMemory(config)) {
+    return { ok: false, code: 1, message: MISSING_MEMORY };
+  }
+  return { ok: true, code: 0, config };
+}
+
 function whichGraphify() {
   const cmd = process.platform === "win32" ? "where" : "which";
   const r = spawnSync(cmd, ["graphify"], { encoding: "utf8" });
@@ -191,7 +201,7 @@ export function cmdInit(root, scopeArg) {
     return {
       ok: false,
       code: 1,
-      message: "Falta .haui-deck/config.json. Corre /deck-init primero.",
+      message: MISSING_DECK,
     };
   }
 
@@ -238,10 +248,9 @@ export function cmdInit(root, scopeArg) {
 }
 
 export function cmdRefresh(root, idArg) {
-  const { config, missingFile } = readConfig(root);
-  if (missingFile || !hasMemory(config)) {
-    return { ok: false, code: 1, message: missingMemoryMessage() };
-  }
+  const gate = requireMemoryConfig(root);
+  if (!gate.ok) return gate;
+  const { config } = gate;
   const id = resolveBlockId(config.memory, idArg);
   const block = findBlock(config.memory, id);
   if (!block) {
@@ -259,10 +268,9 @@ export function cmdRefresh(root, idArg) {
 }
 
 export function cmdStatus(root, idArg) {
-  const { config, missingFile } = readConfig(root);
-  if (missingFile || !hasMemory(config)) {
-    return { ok: false, code: 1, message: missingMemoryMessage() };
-  }
+  const gate = requireMemoryConfig(root);
+  if (!gate.ok) return gate;
+  const { config } = gate;
   const cli = whichGraphify();
   const blocks = idArg
     ? [findBlock(config.memory, idArg)].filter(Boolean)
@@ -298,10 +306,9 @@ export function cmdStatus(root, idArg) {
 }
 
 export function cmdOpen(root, idArg) {
-  const { config, missingFile } = readConfig(root);
-  if (missingFile || !hasMemory(config)) {
-    return { ok: false, code: 1, message: missingMemoryMessage() };
-  }
+  const gate = requireMemoryConfig(root);
+  if (!gate.ok) return gate;
+  const { config } = gate;
   const id = resolveBlockId(config.memory, idArg);
   const block = findBlock(config.memory, id);
   if (!block) {
@@ -339,10 +346,9 @@ export function cmdOpen(root, idArg) {
 }
 
 export function planRemove(root, idArg) {
-  const { config, missingFile } = readConfig(root);
-  if (missingFile || !hasMemory(config)) {
-    return { ok: false, code: 1, message: missingMemoryMessage() };
-  }
+  const gate = requireMemoryConfig(root);
+  if (!gate.ok) return gate;
+  const { config } = gate;
   const id = resolveBlockId(config.memory, idArg);
   const block = findBlock(config.memory, id);
   if (!block) {
@@ -394,10 +400,9 @@ export function cmdRemove(root, idArg, { yes = false } = {}) {
 }
 
 export function planClear(root) {
-  const { config, missingFile } = readConfig(root);
-  if (missingFile || !hasMemory(config)) {
-    return { ok: false, code: 1, message: missingMemoryMessage() };
-  }
+  const gate = requireMemoryConfig(root);
+  if (!gate.ok) return gate;
+  const { config } = gate;
   return {
     ok: true,
     code: 2,

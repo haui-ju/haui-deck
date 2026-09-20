@@ -1,9 +1,9 @@
 ---
 name: deck-graphify-clear
 description: >-
-  Delete all Graphify memory blocks and artifact dirs, set memory to null in
-  .haui-deck/config.json. Always show a short plan and ask for confirmation
-  before deleting. Use when the user runs /deck-graphify-clear.
+  Delete all Graphify memory blocks and set memory to null. Requires
+  config+memory (else /deck-init or /deck-graphify-init). Always confirm before
+  deleting. Use when the user runs /deck-graphify-clear.
 disable-model-invocation: true
 ---
 
@@ -12,18 +12,18 @@ disable-model-invocation: true
 ## Instructions
 
 1. cwd = raíz del proyecto.
-2. Plan (sin borrar):
+2. Plan:
 
 ```bash
-node <path-to-this-skill>/scripts/memory.mjs clear
+node <path-to-this-skill>/scripts/run.mjs clear
 ```
 
-3. Si falta `memory`, muestra el mensaje y para.
-4. Muestra ids + dirs a borrar + `memory → null` y **pide confirmación**.
+3. Si pide init → muestra **solo** ese mensaje y para.
+4. Detalle breve → **pide confirmación**.
 5. Solo si confirma:
 
 ```bash
-node <path-to-this-skill>/scripts/memory.mjs clear --yes
+node <path-to-this-skill>/scripts/run.mjs clear --yes
 ```
 
-Sin confirmación → no borres nada. No toques `design` / `product`.
+Sin confirmación → no borres. Al final: **ok**.
