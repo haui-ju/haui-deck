@@ -1,6 +1,7 @@
 /**
  * Path containment helpers for haui-deck graphify (shared by memory.mjs and consumer runner).
  */
+import fs from "node:fs";
 import path from "node:path";
 
 export const ID_RE = /^[a-zA-Z0-9][a-zA-Z0-9_-]*$/;
@@ -70,6 +71,36 @@ export function resolveArtifactRel(root, relPath, label = "artifact") {
     throw new Error(`${label} fuera del proyecto: ${relPath}`);
   }
   return { rel: out, abs };
+}
+
+/**
+ * Like resolveArtifactRel, but if the path exists, also require realpath inside root.
+ * Rejects symlinks whose target escapes the project (do not rm).
+ */
+export function resolveArtifactRelForDelete(root, relPath, label = "artifact") {
+  const { rel, abs } = resolveArtifactRel(root, relPath, label);
+  let st;
+  try {
+    st = fs.lstatSync(abs);
+  } catch {
+    return { rel, abs };
+  }
+
+  let real;
+  try {
+    real = fs.realpathSync(abs);
+  } catch {
+    if (st.isSymbolicLink()) {
+      const target = fs.readlinkSync(abs);
+      real = path.isAbsolute(target)
+        ? path.resolve(target)
+        : path.resolve(path.dirname(abs), target);
+    } else {
+      return { rel, abs };
+    }
+  }
+  assertInsideRoot(root, real, `${label} (realpath)`);
+  return { rel, abs };
 }
 
 export function idFromScope(scope) {

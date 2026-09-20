@@ -9,17 +9,17 @@
     "deck-graphify-init": {
       "source": "./suit/graphify",
       "sourceType": "local",
-      "computedHash": "9baa021e9496ab7a660f3df8584c3a810315d66fefafb374dd6fc6977aa0a28c"
+      "computedHash": "227717987b7abde9552f08c5adf54ead3c965d0e0946c825ccc12f9856f0f7ce"
     },
     "deck-graphify-open": {
       "source": "./suit/graphify",
       "sourceType": "local",
-      "computedHash": "2dec74bfacad234b5c34cd0e153e195f8e89ca4767dc64487212a2f6e6f505e1"
+      "computedHash": "6c4be7ceeafb36a56724b1e850bdcdda2a261313b29a96a8ce7e7b821bc297e1"
     },
     "deck-graphify-refresh": {
       "source": "./suit/graphify",
       "sourceType": "local",
-      "computedHash": "112a7b3fb124f230ab6d6b1205a11dc5528857c4a6b1b1ad53e9441966ea2fb4"
+      "computedHash": "e26f5424f0c9546642f038f2dfdbe6042af6cfd0c085084238458b5e2b62b109"
     },
     "deck-graphify-remove": {
       "source": "./suit/graphify",

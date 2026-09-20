@@ -23,6 +23,7 @@ import {
   normalizeScope,
   resolveScope,
   resolveArtifactRel,
+  resolveArtifactRelForDelete,
   idFromScope,
   artifactsForScope,
 } from "./paths.mjs";
@@ -34,6 +35,7 @@ export {
   normalizeScope,
   resolveScope,
   resolveArtifactRel,
+  resolveArtifactRelForDelete,
   idFromScope,
   artifactsForScope,
 };
@@ -373,11 +375,13 @@ export function ensurePackageScripts(root) {
 }
 
 function rmDirSafe(abs) {
-  if (fs.existsSync(abs)) {
-    fs.rmSync(abs, { recursive: true, force: true });
-    return true;
+  try {
+    fs.lstatSync(abs);
+  } catch {
+    return false;
   }
-  return false;
+  fs.rmSync(abs, { recursive: true, force: true });
+  return true;
 }
 
 function requireGraphifyProvider(block) {
@@ -404,6 +408,21 @@ export function cmdInit(root, scopeArg) {
     config.memory.enabled === false
   ) {
     return { ok: true, code: 0, noop: true, message: DISABLED, action: "init" };
+  }
+
+  // If memory already present (enabled), validate shape + paths before indexing
+  if (config.memory && typeof config.memory === "object") {
+    try {
+      const existing = assertMemoryShape(config.memory);
+      for (const b of existing.blocks) {
+        resolveArtifactRel(root, b.artifacts.dir, `block ${b.id} dir`);
+        resolveArtifactRel(root, b.artifacts.graph, `block ${b.id} graph`);
+        resolveArtifactRel(root, b.artifacts.html, `block ${b.id} html`);
+        resolveScope(root, b.scope);
+      }
+    } catch (err) {
+      return { ok: false, code: 1, message: err.message };
+    }
   }
 
   let resolved;
@@ -607,7 +626,7 @@ export function planRemove(root, idArg) {
   const bad = requireGraphifyProvider(block);
   if (bad) return bad;
   try {
-    resolveArtifactRel(root, block.artifacts.dir, "dir");
+    resolveArtifactRelForDelete(root, block.artifacts.dir, "dir");
   } catch (err) {
     return { ok: false, code: 1, message: err.message };
   }
@@ -643,7 +662,7 @@ export function cmdRemove(root, idArg, { yes = false } = {}) {
   const block = findBlock(memory, id);
   let absDir;
   try {
-    absDir = resolveArtifactRel(root, block.artifacts.dir, "dir").abs;
+    absDir = resolveArtifactRelForDelete(root, block.artifacts.dir, "dir").abs;
   } catch (err) {
     return { ok: false, code: 1, message: err.message };
   }
@@ -674,7 +693,7 @@ export function planClear(root) {
     const bad = requireGraphifyProvider(b);
     if (bad) return bad;
     try {
-      resolveArtifactRel(root, b.artifacts.dir, "dir");
+      resolveArtifactRelForDelete(root, b.artifacts.dir, "dir");
     } catch (err) {
       return { ok: false, code: 1, message: err.message };
     }
@@ -707,7 +726,7 @@ export function cmdClear(root, { yes = false } = {}) {
   }
   const deleted = [];
   for (const b of memory.blocks) {
-    const abs = resolveArtifactRel(root, b.artifacts.dir, "dir").abs;
+    const abs = resolveArtifactRelForDelete(root, b.artifacts.dir, "dir").abs;
     if (rmDirSafe(abs)) deleted.push(b.artifacts.dir);
   }
   config.memory = null;

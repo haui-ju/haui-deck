@@ -347,6 +347,56 @@ test("init scope .. rechazado", () => {
   assert.match(r.message, /inválido|fuera/);
 });
 
+test("init con memory malformada (sin artifacts) → error, no escribe", () => {
+  const root = tmpProject({});
+  writeCfg(root, {
+    version: 1,
+    design: null,
+    product: null,
+    memory: {
+      enabled: true,
+      default: "root",
+      blocks: [{ id: "root", provider: "graphify", scope: "." }],
+    },
+  });
+  const before = fs.readFileSync(path.join(root, ".haui-deck", "config.json"), "utf8");
+  const r = mem.main(["init"], root);
+  assert.equal(r.ok, false);
+  assert.match(r.message, /artifacts|inválida/);
+  const after = fs.readFileSync(path.join(root, ".haui-deck", "config.json"), "utf8");
+  assert.equal(after, before);
+  assert.equal(fs.existsSync(path.join(root, "graphify-out")), false);
+});
+
+test("remove con symlink escape → reject; target intacto; config no muta", () => {
+  const root = tmpProject({});
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), "haui-escape-"));
+  fs.writeFileSync(path.join(outside, "secret"), "keep-me");
+  const link = path.join(root, "graphify-out");
+  fs.symlinkSync(outside, link);
+
+  const block = mem.makeBlock(".", "root");
+  writeCfg(root, {
+    version: 1,
+    design: null,
+    product: null,
+    memory: { enabled: true, default: "root", blocks: [block] },
+  });
+  const before = fs.readFileSync(path.join(root, ".haui-deck", "config.json"), "utf8");
+
+  const r = mem.main(["remove", "--yes"], root);
+  assert.equal(r.ok, false);
+  assert.match(r.message, /fuera|realpath/);
+  assert.ok(fs.existsSync(path.join(outside, "secret")));
+  assert.equal(
+    fs.readFileSync(path.join(root, ".haui-deck", "config.json"), "utf8"),
+    before,
+  );
+  // link still present (we refused to rm)
+  assert.ok(fs.lstatSync(link).isSymbolicLink());
+  fs.rmSync(outside, { recursive: true, force: true });
+});
+
 test("run.mjs refresh sin config → deck-init via wrapper", () => {
   const root = tmpProject({});
   const runPath = path.resolve(

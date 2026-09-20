@@ -13,15 +13,14 @@ disable-model-invocation: true
 
 1. cwd = raíz del proyecto.
 2. Si falta `.haui-deck/config.json` → responde solo `Ejecuta /deck-init` y para.
-3. Si `memory.enabled=false` → no-op (el usuario pausó memoria).
-4. Scope = arg del usuario, o `.`.
-5. Ejecuta:
+3. Ejecuta:
 
 ```bash
 node <path-to-this-skill>/scripts/memory.mjs init [scope]
 ```
 
-6. Responde breve (ok + id). Menciona scripts npm si se añadieron:
+4. Si el JSON tiene `noop: true` / `memory.enabled=false` → responde solo **ok, memoria deshabilitada**. No digas que indexaste.
+5. Si ok real → breve (ok + id) y scripts npm si se añadieron:
 
 ```bash
 pnpm graphify:query -- "…"
