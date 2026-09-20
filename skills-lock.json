@@ -4,12 +4,12 @@
     "deck-graphify-clear": {
       "source": "./suit/graphify",
       "sourceType": "local",
-      "computedHash": "f8000434b56504acb78dada1af73d8e720e1c9193c29f0d6997f5c5e3ce46c7f"
+      "computedHash": "1f2b721437b07da85298293301d4376a857cf858cc17c76940ba9df1c9840f96"
     },
     "deck-graphify-init": {
       "source": "./suit/graphify",
       "sourceType": "local",
-      "computedHash": "08660802a6b22680cc2c040dfcdc264bdc0e3ce0036d29b8e4e7d7bf3175ea95"
+      "computedHash": "dbd5fadff17c66f5ce2e37b190f0b8524d66b575d14f9cbcb34377e644f08129"
     },
     "deck-graphify-open": {
       "source": "./suit/graphify",
@@ -24,7 +24,7 @@
     "deck-graphify-remove": {
       "source": "./suit/graphify",
       "sourceType": "local",
-      "computedHash": "2601984e25bb5ba349268e7f152a0e2e49b349f27548ced88e7ced402f2631c1"
+      "computedHash": "e9c3f6152d6830ef2b72b0a8786da943b981cea771b130de55a1c14b526da9da"
     },
     "deck-graphify-status": {
       "source": "./suit/graphify",

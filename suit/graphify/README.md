@@ -15,4 +15,7 @@ Memoria Graphify en el **proyecto consumidor** (un solo `memory.mjs` en `deck-gr
 npx skills add haui-ju/haui-deck/suit/graphify
 ```
 
-Instalar el **suit completo** (refresh/open/… necesitan `deck-graphify-init` al lado).
+- Instalar el **suit completo** (wrappers resuelven `deck-graphify-init`).
+- Paths de `scope` / `artifacts` siempre **dentro** del proyecto.
+- `memory.enabled=false` → skills no-op (el usuario no quiere memoria).
+- `/deck-graphify-clear` no quita la línea `**/graphify-out/` del `.gitignore`.

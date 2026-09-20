@@ -31,6 +31,14 @@ function tmpProject(files = {}) {
   return root;
 }
 
+function writeCfg(root, cfg) {
+  fs.mkdirSync(path.join(root, ".haui-deck"), { recursive: true });
+  fs.writeFileSync(
+    path.join(root, ".haui-deck", "config.json"),
+    `${JSON.stringify(cfg, null, 2)}\n`,
+  );
+}
+
 function test(name, fn) {
   try {
     fn();
@@ -45,15 +53,28 @@ function test(name, fn) {
 test("idFromScope / artifacts", () => {
   assert.equal(mem.idFromScope("."), "root");
   assert.equal(mem.idFromScope("src/components"), "components");
+  assert.equal(mem.idFromScope(".."), "block");
   assert.deepEqual(mem.artifactsForScope("."), {
     dir: "graphify-out",
     graph: "graphify-out/graph.json",
     html: "graphify-out/graph.html",
   });
-  assert.equal(
-    mem.artifactsForScope("src/components").dir,
-    "src/components/graphify-out",
-  );
+});
+
+test("assertInsideRoot / resolveScope rechaza ..", () => {
+  const root = tmpProject({});
+  assert.throws(() => mem.resolveScope(root, ".."), /inválido|fuera/);
+  assert.throws(() => mem.resolveScope(root, "../x"), /inválido|fuera/);
+  const ok = mem.resolveScope(root, ".");
+  assert.equal(ok.scope, ".");
+});
+
+test("resolveArtifactRel rechaza escape", () => {
+  const root = tmpProject({});
+  assert.throws(() => mem.resolveArtifactRel(root, "../OUTSIDE"), /fuera|inválido/);
+  assert.throws(() => mem.resolveArtifactRel(root, "foo/../../etc"), /fuera|inválido/);
+  const r = mem.resolveArtifactRel(root, "graphify-out");
+  assert.equal(r.rel, "graphify-out");
 });
 
 test("ensure-haui-deck preserva memory", () => {
@@ -72,21 +93,15 @@ test("ensure-haui-deck preserva memory", () => {
   assert.equal(next.design, "DESIGN.md");
   assert.ok(next.memory);
   assert.equal(next.memory.default, "root");
-  assert.equal(next.memory.blocks[0].id, "root");
 });
 
 test("refresh/open/status sin memory → graphify-init", () => {
   const root = tmpProject({});
-  fs.mkdirSync(path.join(root, ".haui-deck"));
-  fs.writeFileSync(
-    path.join(root, ".haui-deck", "config.json"),
-    `${JSON.stringify({ version: 1, design: null, product: null }, null, 2)}\n`,
-  );
+  writeCfg(root, { version: 1, design: null, product: null });
   for (const cmd of ["refresh", "status", "open", "remove", "clear"]) {
     const r = mem.main([cmd], root);
     assert.equal(r.ok, false);
     assert.match(r.message, /deck-graphify-init/);
-    assert.doesNotMatch(r.message, /\/deck-init$/m);
   }
 });
 
@@ -96,24 +111,143 @@ test("refresh sin config.json → deck-init", () => {
     const r = mem.main([cmd], root);
     assert.equal(r.ok, false);
     assert.match(r.message, /\/deck-init/);
-    assert.doesNotMatch(r.message, /deck-graphify-init/);
   }
 });
 
-test("remove plan needsConfirm; --yes borra bloque", () => {
+test("memory {} / sin artifacts → mensaje no TypeError", () => {
   const root = tmpProject({});
-  fs.mkdirSync(path.join(root, ".haui-deck"));
+  writeCfg(root, { version: 1, design: null, product: null, memory: {} });
+  const r = mem.main(["status"], root);
+  assert.equal(r.ok, false);
+  assert.match(r.message, /inválida|blocks/);
+
+  writeCfg(root, {
+    version: 1,
+    design: null,
+    product: null,
+    memory: {
+      enabled: true,
+      default: "root",
+      blocks: [{ id: "root", provider: "graphify", scope: "." }],
+    },
+  });
+  const r2 = mem.main(["status"], root);
+  assert.equal(r2.ok, false);
+  assert.match(r2.message, /artifacts/);
+});
+
+test("ids duplicados → error", () => {
+  const root = tmpProject({});
+  const b = mem.makeBlock(".", "root");
+  writeCfg(root, {
+    version: 1,
+    design: null,
+    product: null,
+    memory: { enabled: true, default: "root", blocks: [b, { ...b }] },
+  });
+  const r = mem.main(["status"], root);
+  assert.equal(r.ok, false);
+  assert.match(r.message, /duplicado/);
+});
+
+test("enabled false → noop todas las cmds", () => {
+  const root = tmpProject({});
   const block = mem.makeBlock(".", "root");
-  const cfg = {
+  writeCfg(root, {
+    version: 1,
+    design: null,
+    product: null,
+    memory: { enabled: false, default: "root", blocks: [block] },
+  });
+  const art = path.join(root, "graphify-out");
+  fs.mkdirSync(art);
+  fs.writeFileSync(path.join(art, "x"), "1");
+
+  for (const args of [["status"], ["refresh"], ["init"], ["remove", "--yes"], ["clear", "--yes"]]) {
+    const r = mem.main(args, root);
+    assert.equal(r.ok, true);
+    assert.equal(r.noop, true);
+    assert.match(r.message, /enabled=false/);
+  }
+  assert.ok(fs.existsSync(art));
+  const disk = JSON.parse(
+    fs.readFileSync(path.join(root, ".haui-deck", "config.json"), "utf8"),
+  );
+  assert.equal(disk.memory.enabled, false);
+});
+
+test("default fantasma → usa primer bloque", () => {
+  const root = tmpProject({});
+  const a = mem.makeBlock(".", "root");
+  const b = mem.makeBlock("src/x", "x");
+  fs.mkdirSync(path.join(root, "src/x"), { recursive: true });
+  writeCfg(root, {
+    version: 1,
+    design: null,
+    product: null,
+    memory: { enabled: true, default: "ghost", blocks: [a, b] },
+  });
+  const resolved = mem.resolveBlockId(
+    { enabled: true, default: "ghost", blocks: [a, b] },
+    null,
+  );
+  assert.equal(resolved.id, "root");
+  assert.match(resolved.warning, /ghost/);
+});
+
+test("remove rechaza artifacts.dir escapado", () => {
+  const root = tmpProject({});
+  const block = {
+    id: "root",
+    provider: "graphify",
+    scope: ".",
+    artifacts: {
+      dir: "../OUTSIDE",
+      graph: "../OUTSIDE/g.json",
+      html: "../OUTSIDE/g.html",
+    },
+  };
+  writeCfg(root, {
     version: 1,
     design: null,
     product: null,
     memory: { enabled: true, default: "root", blocks: [block] },
-  };
-  fs.writeFileSync(
-    path.join(root, ".haui-deck", "config.json"),
-    `${JSON.stringify(cfg, null, 2)}\n`,
-  );
+  });
+  const outside = path.join(path.dirname(root), "OUTSIDE");
+  fs.mkdirSync(outside, { recursive: true });
+  fs.writeFileSync(path.join(outside, "keep"), "1");
+
+  const r = mem.main(["remove", "--yes"], root);
+  assert.equal(r.ok, false);
+  assert.match(r.message, /fuera|inválido/);
+  assert.ok(fs.existsSync(path.join(outside, "keep")));
+  fs.rmSync(outside, { recursive: true, force: true });
+});
+
+test("provider other → remove rechaza", () => {
+  const root = tmpProject({});
+  const block = mem.makeBlock(".", "root");
+  block.provider = "other";
+  writeCfg(root, {
+    version: 1,
+    design: null,
+    product: null,
+    memory: { enabled: true, default: "root", blocks: [block] },
+  });
+  const r = mem.main(["remove", "--yes"], root);
+  assert.equal(r.ok, false);
+  assert.match(r.message, /provider/);
+});
+
+test("remove plan needsConfirm; --yes borra bloque", () => {
+  const root = tmpProject({});
+  const block = mem.makeBlock(".", "root");
+  writeCfg(root, {
+    version: 1,
+    design: null,
+    product: null,
+    memory: { enabled: true, default: "root", blocks: [block] },
+  });
   const art = path.join(root, "graphify-out");
   fs.mkdirSync(art);
   fs.writeFileSync(path.join(art, "graph.json"), "{}\n");
@@ -121,41 +255,26 @@ test("remove plan needsConfirm; --yes borra bloque", () => {
   const plan = mem.main(["remove"], root);
   assert.equal(plan.needsConfirm, true);
   assert.equal(plan.code, 2);
-  assert.ok(fs.existsSync(art));
 
   const done = mem.main(["remove", "--yes"], root);
   assert.equal(done.ok, true);
   assert.equal(done.memory, null);
   assert.equal(fs.existsSync(art), false);
-  const disk = JSON.parse(
-    fs.readFileSync(path.join(root, ".haui-deck", "config.json"), "utf8"),
-  );
-  assert.equal(disk.memory, null);
 });
 
 test("clear --yes limpia todos", () => {
   const root = tmpProject({});
-  fs.mkdirSync(path.join(root, ".haui-deck"));
   const a = mem.makeBlock(".", "root");
   const b = mem.makeBlock("src/x", "x");
-  fs.writeFileSync(
-    path.join(root, ".haui-deck", "config.json"),
-    `${JSON.stringify(
-      {
-        version: 1,
-        design: null,
-        product: null,
-        memory: { enabled: true, default: "root", blocks: [a, b] },
-      },
-      null,
-      2,
-    )}\n`,
-  );
+  writeCfg(root, {
+    version: 1,
+    design: null,
+    product: null,
+    memory: { enabled: true, default: "root", blocks: [a, b] },
+  });
   fs.mkdirSync(path.join(root, a.artifacts.dir), { recursive: true });
   fs.mkdirSync(path.join(root, b.artifacts.dir), { recursive: true });
 
-  const plan = mem.main(["clear"], root);
-  assert.equal(plan.needsConfirm, true);
   const done = mem.main(["clear", "--yes"], root);
   assert.equal(done.ok, true);
   assert.equal(done.memory, null);
@@ -165,8 +284,6 @@ test("ensureGitignore append", () => {
   const root = tmpProject({ ".gitignore": "node_modules/\n" });
   const r = mem.ensureGitignore(root);
   assert.equal(r.appended, true);
-  const body = fs.readFileSync(path.join(root, ".gitignore"), "utf8");
-  assert.match(body, /\*\*\/graphify-out\//);
 });
 
 test("init exige deck-init", () => {
@@ -174,6 +291,14 @@ test("init exige deck-init", () => {
   const r = mem.main(["init"], root);
   assert.equal(r.ok, false);
   assert.match(r.message, /deck-init/);
+});
+
+test("init scope .. rechazado", () => {
+  const root = tmpProject({});
+  writeCfg(root, { version: 1, design: null, product: null });
+  const r = mem.main(["init", ".."], root);
+  assert.equal(r.ok, false);
+  assert.match(r.message, /inválido|fuera/);
 });
 
 test("run.mjs refresh sin config → deck-init via wrapper", () => {

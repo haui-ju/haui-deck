@@ -1,16 +1,15 @@
 #!/usr/bin/env node
 /**
- * haui-deck graphify memory helper (copied into each deck-graphify-* skill).
+ * haui-deck graphify memory helper (sole copy: deck-graphify-init/scripts/).
+ * Other skills delegate via scripts/run.mjs.
  *
  * Usage:
  *   node memory.mjs init [scope]
  *   node memory.mjs refresh [id]
  *   node memory.mjs status [id]
  *   node memory.mjs open [id]
- *   node memory.mjs remove [id] --yes
- *   node memory.mjs clear --yes
- *   node memory.mjs remove [id]          # plan only (exit 2) — agent must confirm then --yes
- *   node memory.mjs clear
+ *   node memory.mjs remove [id] [--yes]
+ *   node memory.mjs clear [--yes]
  */
 
 import { spawnSync } from "node:child_process";
@@ -23,7 +22,11 @@ const MISSING_MEMORY = `Ejecuta /deck-graphify-init
 
 const MISSING_DECK = `Ejecuta /deck-init`;
 
+const DISABLED = `memory.enabled=false`;
+
 const GITIGNORE_LINE = "**/graphify-out/";
+
+const ID_RE = /^[a-zA-Z0-9][a-zA-Z0-9_-]*$/;
 
 export function configPath(root) {
   return path.join(root, ".haui-deck", "config.json");
@@ -51,16 +54,86 @@ export function writeConfig(root, config) {
   return p;
 }
 
+/** True if absPath is inside root (or equal). */
+export function isInsideRoot(root, absPath) {
+  const rootAbs = path.resolve(root);
+  const target = path.resolve(absPath);
+  const rel = path.relative(rootAbs, target);
+  return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
+}
+
+export function assertInsideRoot(root, absPath, label = "path") {
+  if (!isInsideRoot(root, absPath)) {
+    throw new Error(`${label} fuera del proyecto: ${absPath}`);
+  }
+  return path.resolve(absPath);
+}
+
+/**
+ * Normalize scope relative to project root. Rejects escapes and abs outside root.
+ * Absolute paths inside root become relative posix paths.
+ */
+export function resolveScope(root, scopeArg) {
+  const raw = scopeArg == null || scopeArg === "" ? "." : String(scopeArg);
+  const trimmed = raw.replace(/\\/g, "/").replace(/\/+$/, "") || ".";
+
+  if (trimmed === "." || trimmed === "./") {
+    return { scope: ".", abs: path.resolve(root) };
+  }
+
+  // Reject pure parent / empty junk before join
+  const parts = trimmed.split("/").filter((p) => p && p !== ".");
+  if (parts.some((p) => p === "..")) {
+    throw new Error(`scope inválido (contiene ..): ${raw}`);
+  }
+
+  let abs;
+  if (path.isAbsolute(raw)) {
+    abs = path.resolve(raw);
+    assertInsideRoot(root, abs, "scope");
+  } else {
+    abs = path.resolve(root, trimmed);
+    assertInsideRoot(root, abs, "scope");
+  }
+
+  const rel = path.relative(path.resolve(root), abs);
+  const scope =
+    rel === "" ? "." : rel.split(path.sep).join("/");
+  if (scope.startsWith("..")) {
+    throw new Error(`scope fuera del proyecto: ${raw}`);
+  }
+  return { scope, abs };
+}
+
 export function normalizeScope(scope) {
+  // Legacy helper for tests / callers — string-only, no root check.
   if (!scope || scope === "." || scope === "./") return ".";
-  return scope.replace(/\\/g, "/").replace(/\/+$/, "") || ".";
+  return String(scope).replace(/\\/g, "/").replace(/\/+$/, "") || ".";
+}
+
+export function resolveArtifactRel(root, relPath, label = "artifact") {
+  const rel = String(relPath).replace(/\\/g, "/");
+  if (!rel || rel.split("/").includes("..")) {
+    throw new Error(`${label} inválido: ${relPath}`);
+  }
+  const abs = path.resolve(root, rel);
+  assertInsideRoot(root, abs, label);
+  // Store as posix relative from root
+  const out = path.relative(path.resolve(root), abs).split(path.sep).join("/");
+  if (!out || out.startsWith("..")) {
+    throw new Error(`${label} fuera del proyecto: ${relPath}`);
+  }
+  return { rel: out, abs };
 }
 
 export function idFromScope(scope) {
   const s = normalizeScope(scope);
   if (s === ".") return "root";
   const parts = s.split("/").filter(Boolean);
-  return parts[parts.length - 1].replace(/[^a-zA-Z0-9_-]+/g, "-") || "block";
+  let base = (parts[parts.length - 1] || "block").replace(/[^a-zA-Z0-9_-]+/g, "-");
+  base = base.replace(/^-+|-+$/g, "");
+  if (!base || base === "-" || !ID_RE.test(base)) return "block";
+  return base;
 }
 
 export function artifactsForScope(scope) {
@@ -96,9 +169,21 @@ export function findBlock(memory, id) {
   return memory.blocks.find((b) => b.id === id) ?? null;
 }
 
+/**
+ * @returns {{ id: string, warning?: string }}
+ */
 export function resolveBlockId(memory, idArg) {
-  if (idArg) return idArg;
-  return memory?.default ?? "root";
+  if (idArg) return { id: idArg };
+  const preferred = memory?.default ?? "root";
+  if (findBlock(memory, preferred)) return { id: preferred };
+  const first = memory?.blocks?.[0]?.id;
+  if (first) {
+    return {
+      id: first,
+      warning: `default "${preferred}" no existe; usando "${first}"`,
+    };
+  }
+  return { id: preferred };
 }
 
 export function missingMemoryMessage() {
@@ -106,19 +191,129 @@ export function missingMemoryMessage() {
 }
 
 export function hasMemory(config) {
-  return Boolean(config && Object.prototype.hasOwnProperty.call(config, "memory") && config.memory);
+  if (!config || !Object.prototype.hasOwnProperty.call(config, "memory")) return false;
+  const m = config.memory;
+  if (!m || typeof m !== "object") return false;
+  if (!Array.isArray(m.blocks) || m.blocks.length === 0) return false;
+  return true;
 }
 
-/** Config + memory required. Distinguishes /deck-init vs /deck-graphify-init. */
+/**
+ * Validate memory shape. Throws Error with actionable message (never TypeError).
+ * @returns normalized memory object (clone)
+ */
+export function assertMemoryShape(raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    throw new Error("config memory inválida: se esperaba un objeto");
+  }
+  if (!Array.isArray(raw.blocks)) {
+    throw new Error("config memory inválida: falta blocks[]");
+  }
+  if (raw.blocks.length === 0) {
+    throw new Error("config memory inválida: blocks[] vacío");
+  }
+
+  const ids = new Set();
+  const blocks = [];
+  for (let i = 0; i < raw.blocks.length; i++) {
+    const b = raw.blocks[i];
+    if (!b || typeof b !== "object") {
+      throw new Error(`config memory inválida: blocks[${i}] no es objeto`);
+    }
+    if (typeof b.id !== "string" || !b.id || !ID_RE.test(b.id)) {
+      throw new Error(`config memory inválida: blocks[${i}].id inválido`);
+    }
+    if (ids.has(b.id)) {
+      throw new Error(`config memory inválida: id duplicado "${b.id}"`);
+    }
+    ids.add(b.id);
+    if (typeof b.scope !== "string") {
+      throw new Error(`config memory inválida: blocks[${i}].scope requerido`);
+    }
+    if (!b.artifacts || typeof b.artifacts !== "object") {
+      throw new Error(`config memory inválida: blocks[${i}].artifacts requerido`);
+    }
+    for (const k of ["dir", "graph", "html"]) {
+      if (typeof b.artifacts[k] !== "string" || !b.artifacts[k]) {
+        throw new Error(`config memory inválida: blocks[${i}].artifacts.${k} requerido`);
+      }
+    }
+    blocks.push({
+      id: b.id,
+      provider: typeof b.provider === "string" ? b.provider : "graphify",
+      scope: b.scope,
+      artifacts: {
+        dir: b.artifacts.dir,
+        graph: b.artifacts.graph,
+        html: b.artifacts.html,
+      },
+    });
+  }
+
+  return {
+    enabled: typeof raw.enabled === "boolean" ? raw.enabled : true,
+    default: typeof raw.default === "string" && raw.default ? raw.default : blocks[0].id,
+    blocks,
+  };
+}
+
+/**
+ * Load config + validated memory. Handles missing deck / missing memory / disabled / bad shape.
+ */
 export function requireMemoryConfig(root) {
   const { config, missingFile } = readConfig(root);
   if (missingFile || !config) {
     return { ok: false, code: 1, message: MISSING_DECK };
   }
-  if (!hasMemory(config)) {
+  if (
+    !Object.prototype.hasOwnProperty.call(config, "memory") ||
+    config.memory == null ||
+    config.memory === false ||
+    config.memory === ""
+  ) {
     return { ok: false, code: 1, message: MISSING_MEMORY };
   }
-  return { ok: true, code: 0, config };
+
+  let memory;
+  try {
+    memory = assertMemoryShape(config.memory);
+  } catch (err) {
+    // Empty blocks → treat as no memory (UX: ask init)
+    if (String(err.message).includes("blocks[] vacío")) {
+      return { ok: false, code: 1, message: MISSING_MEMORY };
+    }
+    return { ok: false, code: 1, message: err.message };
+  }
+
+  if (memory.enabled === false) {
+    return {
+      ok: true,
+      code: 0,
+      noop: true,
+      message: DISABLED,
+      config: { ...config, memory },
+      memory,
+    };
+  }
+
+  // Validate artifact paths stay inside root
+  try {
+    for (const b of memory.blocks) {
+      resolveArtifactRel(root, b.artifacts.dir, `block ${b.id} dir`);
+      resolveArtifactRel(root, b.artifacts.graph, `block ${b.id} graph`);
+      resolveArtifactRel(root, b.artifacts.html, `block ${b.id} html`);
+      resolveScope(root, b.scope);
+    }
+  } catch (err) {
+    return { ok: false, code: 1, message: err.message };
+  }
+
+  return {
+    ok: true,
+    code: 0,
+    config: { ...config, memory },
+    memory,
+  };
 }
 
 function whichGraphify() {
@@ -154,12 +349,11 @@ export function ensureGraphifyCli() {
 
 export function runGraphifyUpdate(root, scope) {
   const { bin } = ensureGraphifyCli();
-  const s = normalizeScope(scope);
-  const target = s === "." ? root : path.join(root, s);
-  if (!fs.existsSync(target) || !fs.statSync(target).isDirectory()) {
+  const { abs, scope: s } = resolveScope(root, scope);
+  if (!fs.existsSync(abs) || !fs.statSync(abs).isDirectory()) {
     throw new Error(`scope no existe o no es carpeta: ${s}`);
   }
-  const r = spawnSync(bin, ["update", target], {
+  const r = spawnSync(bin, ["update", abs], {
     cwd: root,
     encoding: "utf8",
     maxBuffer: 10 * 1024 * 1024,
@@ -169,7 +363,7 @@ export function runGraphifyUpdate(root, scope) {
       `graphify update falló (exit ${r.status}):\n${r.stderr || r.stdout || ""}`.trim(),
     );
   }
-  return { stdout: r.stdout, stderr: r.stderr };
+  return { stdout: r.stdout, stderr: r.stderr, scope: s };
 }
 
 export function ensureGitignore(root) {
@@ -195,26 +389,58 @@ function rmDirSafe(abs) {
   return false;
 }
 
-export function cmdInit(root, scopeArg) {
-  const { config, missingFile } = readConfig(root);
-  if (missingFile || !config) {
+function requireGraphifyProvider(block) {
+  if (block.provider !== "graphify") {
     return {
       ok: false,
       code: 1,
-      message: MISSING_DECK,
+      message: `provider no soportado en v0: ${block.provider}`,
     };
   }
+  return null;
+}
 
-  const scope = normalizeScope(scopeArg ?? ".");
-  ensureGraphifyCli();
-  runGraphifyUpdate(root, scope);
+export function cmdInit(root, scopeArg) {
+  const { config, missingFile } = readConfig(root);
+  if (missingFile || !config) {
+    return { ok: false, code: 1, message: MISSING_DECK };
+  }
+
+  // If memory exists and enabled=false → no-op
+  if (
+    config.memory &&
+    typeof config.memory === "object" &&
+    config.memory.enabled === false
+  ) {
+    return { ok: true, code: 0, noop: true, message: DISABLED, action: "init" };
+  }
+
+  let resolved;
+  try {
+    resolved = resolveScope(root, scopeArg ?? ".");
+  } catch (err) {
+    return { ok: false, code: 1, message: err.message };
+  }
+
+  const { scope } = resolved;
+
+  try {
+    ensureGraphifyCli();
+    runGraphifyUpdate(root, scope);
+  } catch (err) {
+    return { ok: false, code: 1, message: String(err.message ?? err) };
+  }
+
   const gi = ensureGitignore(root);
 
-  let memory = config.memory && typeof config.memory === "object" ? structuredClone(config.memory) : null;
-  if (!memory) {
+  let memory =
+    config.memory && typeof config.memory === "object" && !Array.isArray(config.memory)
+      ? structuredClone(config.memory)
+      : null;
+
+  if (!memory || !Array.isArray(memory.blocks)) {
     memory = { enabled: true, default: "root", blocks: [] };
   }
-  if (!Array.isArray(memory.blocks)) memory.blocks = [];
   if (typeof memory.enabled !== "boolean") memory.enabled = true;
 
   const preferred = idFromScope(scope);
@@ -223,13 +449,14 @@ export function cmdInit(root, scopeArg) {
   if (existing) {
     existing.artifacts = artifactsForScope(scope);
     existing.provider = "graphify";
+    existing.scope = scope;
     block = existing;
   } else {
     const id = ensureUniqueId(memory.blocks, preferred);
     block = makeBlock(scope, id);
     memory.blocks.push(block);
   }
-  if (!memory.default || !findBlock(memory, memory.default)) {
+  if (!memory.default || !memory.blocks.some((b) => b.id === memory.default)) {
     memory.default = memory.blocks[0]?.id ?? "root";
   }
 
@@ -250,47 +477,56 @@ export function cmdInit(root, scopeArg) {
 export function cmdRefresh(root, idArg) {
   const gate = requireMemoryConfig(root);
   if (!gate.ok) return gate;
-  const { config } = gate;
-  const id = resolveBlockId(config.memory, idArg);
-  const block = findBlock(config.memory, id);
+  if (gate.noop) return gate;
+  const { memory } = gate;
+  const { id, warning } = resolveBlockId(memory, idArg);
+  const block = findBlock(memory, id);
   if (!block) {
     return {
       ok: false,
       code: 1,
-      message: `No hay bloque id="${id}". Ids: ${config.memory.blocks.map((b) => b.id).join(", ") || "(ninguno)"}`,
+      message: `No hay bloque id="${id}". Ids: ${memory.blocks.map((b) => b.id).join(", ") || "(ninguno)"}`,
     };
   }
-  if (block.provider !== "graphify") {
-    return { ok: false, code: 1, message: `provider no soportado en v0: ${block.provider}` };
+  const bad = requireGraphifyProvider(block);
+  if (bad) return bad;
+  try {
+    runGraphifyUpdate(root, block.scope);
+  } catch (err) {
+    return { ok: false, code: 1, message: String(err.message ?? err) };
   }
-  runGraphifyUpdate(root, block.scope);
-  return { ok: true, code: 0, action: "refresh", block };
+  return { ok: true, code: 0, action: "refresh", block, warning };
 }
 
 export function cmdStatus(root, idArg) {
   const gate = requireMemoryConfig(root);
   if (!gate.ok) return gate;
-  const { config } = gate;
+  if (gate.noop) return gate;
+  const { memory } = gate;
   const cli = whichGraphify();
-  const blocks = idArg
-    ? [findBlock(config.memory, idArg)].filter(Boolean)
-    : config.memory.blocks;
+  const blocks = idArg ? [findBlock(memory, idArg)].filter(Boolean) : memory.blocks;
   if (idArg && blocks.length === 0) {
     return {
       ok: false,
       code: 1,
-      message: `No hay bloque id="${idArg}". Ids: ${config.memory.blocks.map((b) => b.id).join(", ")}`,
+      message: `No hay bloque id="${idArg}". Ids: ${memory.blocks.map((b) => b.id).join(", ")}`,
     };
   }
   const detail = blocks.map((b) => {
-    const graphAbs = path.join(root, b.artifacts.graph);
-    const htmlAbs = path.join(root, b.artifacts.html);
+    let graphExists = false;
+    let htmlExists = false;
+    try {
+      graphExists = fs.existsSync(resolveArtifactRel(root, b.artifacts.graph).abs);
+      htmlExists = fs.existsSync(resolveArtifactRel(root, b.artifacts.html).abs);
+    } catch {
+      /* path invalid already gated */
+    }
     return {
       id: b.id,
       scope: b.scope,
       provider: b.provider,
-      graphExists: fs.existsSync(graphAbs),
-      htmlExists: fs.existsSync(htmlAbs),
+      graphExists,
+      htmlExists,
       artifacts: b.artifacts,
     };
   });
@@ -299,8 +535,8 @@ export function cmdStatus(root, idArg) {
     code: 0,
     action: "status",
     cli: cli ? "ok" : "missing",
-    enabled: config.memory.enabled,
-    default: config.memory.default,
+    enabled: memory.enabled,
+    default: memory.default,
     blocks: detail,
   };
 }
@@ -308,17 +544,26 @@ export function cmdStatus(root, idArg) {
 export function cmdOpen(root, idArg) {
   const gate = requireMemoryConfig(root);
   if (!gate.ok) return gate;
-  const { config } = gate;
-  const id = resolveBlockId(config.memory, idArg);
-  const block = findBlock(config.memory, id);
+  if (gate.noop) return gate;
+  const { memory } = gate;
+  const { id, warning } = resolveBlockId(memory, idArg);
+  const block = findBlock(memory, id);
   if (!block) {
     return {
       ok: false,
       code: 1,
-      message: `No hay bloque id="${id}". Ids: ${config.memory.blocks.map((b) => b.id).join(", ")}`,
+      message: `No hay bloque id="${id}". Ids: ${memory.blocks.map((b) => b.id).join(", ")}`,
     };
   }
-  const htmlAbs = path.join(root, block.artifacts.html);
+  const bad = requireGraphifyProvider(block);
+  if (bad) return bad;
+
+  let htmlAbs;
+  try {
+    htmlAbs = resolveArtifactRel(root, block.artifacts.html, "html").abs;
+  } catch (err) {
+    return { ok: false, code: 1, message: err.message };
+  }
   if (!fs.existsSync(htmlAbs)) {
     return {
       ok: false,
@@ -341,22 +586,31 @@ export function cmdOpen(root, idArg) {
     html: block.artifacts.html,
     htmlAbs,
     opened: r.status === 0,
-    openError: r.status === 0 ? null : (r.stderr || r.stdout || `exit ${r.status}`),
+    openError: r.status === 0 ? null : r.stderr || r.stdout || `exit ${r.status}`,
+    warning,
   };
 }
 
 export function planRemove(root, idArg) {
   const gate = requireMemoryConfig(root);
   if (!gate.ok) return gate;
-  const { config } = gate;
-  const id = resolveBlockId(config.memory, idArg);
-  const block = findBlock(config.memory, id);
+  if (gate.noop) return gate;
+  const { memory } = gate;
+  const { id, warning } = resolveBlockId(memory, idArg);
+  const block = findBlock(memory, id);
   if (!block) {
     return {
       ok: false,
       code: 1,
-      message: `No hay bloque id="${id}". Ids: ${config.memory.blocks.map((b) => b.id).join(", ")}`,
+      message: `No hay bloque id="${id}". Ids: ${memory.blocks.map((b) => b.id).join(", ")}`,
     };
+  }
+  const bad = requireGraphifyProvider(block);
+  if (bad) return bad;
+  try {
+    resolveArtifactRel(root, block.artifacts.dir, "dir");
+  } catch (err) {
+    return { ok: false, code: 1, message: err.message };
   }
   return {
     ok: true,
@@ -369,24 +623,38 @@ export function planRemove(root, idArg) {
       configChange: "quitar bloque de memory.blocks (memory→null si queda vacío)",
     },
     block,
+    warning,
   };
 }
 
 export function cmdRemove(root, idArg, { yes = false } = {}) {
   const plan = planRemove(root, idArg);
-  if (!plan.ok || plan.code === 1) return plan;
+  if (!plan.ok || plan.noop) return plan;
+  if (plan.code === 1) return plan;
   if (!yes) return plan;
 
   const { config } = readConfig(root);
+  let memory;
+  try {
+    memory = assertMemoryShape(config.memory);
+  } catch (err) {
+    return { ok: false, code: 1, message: err.message };
+  }
   const id = plan.block.id;
-  const block = findBlock(config.memory, id);
-  const absDir = path.join(root, block.artifacts.dir);
+  const block = findBlock(memory, id);
+  let absDir;
+  try {
+    absDir = resolveArtifactRel(root, block.artifacts.dir, "dir").abs;
+  } catch (err) {
+    return { ok: false, code: 1, message: err.message };
+  }
   const deleted = rmDirSafe(absDir);
-  config.memory.blocks = config.memory.blocks.filter((b) => b.id !== id);
-  if (config.memory.blocks.length === 0) {
+  memory.blocks = memory.blocks.filter((b) => b.id !== id);
+  if (memory.blocks.length === 0) {
     config.memory = null;
-  } else if (config.memory.default === id) {
-    config.memory.default = config.memory.blocks[0].id;
+  } else {
+    if (memory.default === id) memory.default = memory.blocks[0].id;
+    config.memory = memory;
   }
   writeConfig(root, config);
   return {
@@ -402,29 +670,47 @@ export function cmdRemove(root, idArg, { yes = false } = {}) {
 export function planClear(root) {
   const gate = requireMemoryConfig(root);
   if (!gate.ok) return gate;
-  const { config } = gate;
+  if (gate.noop) return gate;
+  const { memory } = gate;
+  for (const b of memory.blocks) {
+    const bad = requireGraphifyProvider(b);
+    if (bad) return bad;
+    try {
+      resolveArtifactRel(root, b.artifacts.dir, "dir");
+    } catch (err) {
+      return { ok: false, code: 1, message: err.message };
+    }
+  }
   return {
     ok: true,
     code: 2,
     needsConfirm: true,
     action: "clear",
     will: {
-      deleteDirs: config.memory.blocks.map((b) => b.artifacts.dir),
-      configChange: 'memory → null',
-      blockIds: config.memory.blocks.map((b) => b.id),
+      deleteDirs: memory.blocks.map((b) => b.artifacts.dir),
+      configChange: "memory → null",
+      blockIds: memory.blocks.map((b) => b.id),
     },
   };
 }
 
 export function cmdClear(root, { yes = false } = {}) {
   const plan = planClear(root);
-  if (!plan.ok || plan.code === 1) return plan;
+  if (!plan.ok || plan.noop) return plan;
+  if (plan.code === 1) return plan;
   if (!yes) return plan;
 
   const { config } = readConfig(root);
+  let memory;
+  try {
+    memory = assertMemoryShape(config.memory);
+  } catch (err) {
+    return { ok: false, code: 1, message: err.message };
+  }
   const deleted = [];
-  for (const b of config.memory.blocks) {
-    if (rmDirSafe(path.join(root, b.artifacts.dir))) deleted.push(b.artifacts.dir);
+  for (const b of memory.blocks) {
+    const abs = resolveArtifactRel(root, b.artifacts.dir, "dir").abs;
+    if (rmDirSafe(abs)) deleted.push(b.artifacts.dir);
   }
   config.memory = null;
   writeConfig(root, config);
@@ -446,21 +732,25 @@ export function main(argv, root = process.cwd()) {
     };
   }
 
-  switch (cmd) {
-    case "init":
-      return cmdInit(root, rest[0]);
-    case "refresh":
-      return cmdRefresh(root, rest[0]);
-    case "status":
-      return cmdStatus(root, rest[0]);
-    case "open":
-      return cmdOpen(root, rest[0]);
-    case "remove":
-      return cmdRemove(root, rest[0], { yes });
-    case "clear":
-      return cmdClear(root, { yes });
-    default:
-      return { ok: false, code: 1, message: `comando desconocido: ${cmd}` };
+  try {
+    switch (cmd) {
+      case "init":
+        return cmdInit(root, rest[0]);
+      case "refresh":
+        return cmdRefresh(root, rest[0]);
+      case "status":
+        return cmdStatus(root, rest[0]);
+      case "open":
+        return cmdOpen(root, rest[0]);
+      case "remove":
+        return cmdRemove(root, rest[0], { yes });
+      case "clear":
+        return cmdClear(root, { yes });
+      default:
+        return { ok: false, code: 1, message: `comando desconocido: ${cmd}` };
+    }
+  } catch (err) {
+    return { ok: false, code: 1, message: String(err?.message ?? err) };
   }
 }
 
@@ -469,16 +759,15 @@ const isMain =
   import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
 
 if (isMain) {
-  try {
-    const result = main(process.argv.slice(2));
-    if (result.message && !result.ok) {
-      console.error(result.message);
-    } else {
-      console.log(JSON.stringify(result, null, 2));
-    }
-    process.exit(result.code ?? (result.ok ? 0 : 1));
-  } catch (err) {
-    console.error(String(err?.message ?? err));
-    process.exit(1);
+  const result = main(process.argv.slice(2));
+  if (result.noop) {
+    console.log(JSON.stringify(result, null, 2));
+    process.exit(0);
   }
+  if (result.message && !result.ok) {
+    console.error(result.message);
+  } else {
+    console.log(JSON.stringify(result, null, 2));
+  }
+  process.exit(result.code ?? (result.ok ? 0 : 1));
 }
